@@ -588,9 +588,9 @@ body{
       <div class="lbl" id="ic-piggy"></div>
       <div class="big tnum"><span class="cur">$</span><span id="save-total">0</span></div>
       <div class="stats">
+        <div class="stat"><div class="n tnum" id="cart-deb">$0</div><div class="t">Débito</div></div>
         <div class="stat"><div class="n tnum" id="cart-sav">$0</div><div class="t">Ahorros</div></div>
         <div class="stat"><div class="n tnum" id="cart-inv">$0</div><div class="t">Inversiones</div></div>
-        <div class="stat"><div class="n tnum" id="cart-gain" style="color:#36d399">+$0</div><div class="t">Ganancia</div></div>
       </div>
     </div>
     <div class="segs" id="cart-segs"></div>
@@ -792,6 +792,40 @@ const CARD_PRODUCTS={
  cuenca:[{id:'cuenca',name:'Cuenca',c1:'#0a3d3a',c2:'#13a89a'}],
  palacio:[{id:'negra',name:'Palacio',c1:'#0c0d10',c2:'#2b2f37'},{id:'gold',name:'Gold',c1:'#7a5f28',c2:'#e6c879'}],
 };
+// Diseños de tarjetas de DÉBITO por banco (nombres reales)
+const DEBIT_PRODUCTS={
+ bbva:[{id:'azul',name:'Débito Azul',c1:'#072146',c2:'#1f7bd6'},{id:'oro',name:'Oro',c1:'#7a5f28',c2:'#e6c879'},{id:'nomina',name:'Nómina',c1:'#0a3a6b',c2:'#2f8be0'},{id:'premium',name:'Premium World',c1:'#0e0f12',c2:'#33373f'}],
+ santander:[{id:'free',name:'Débito Free',c1:'#9b0000',c2:'#ec3b3b'},{id:'likeu',name:'LikeU',c1:'#8a1357',c2:'#ff5ca0'},{id:'nomina',name:'Nómina',c1:'#8a0000',c2:'#c22'}],
+ banamex:[{id:'maestra',name:'Cuenta Maestra',c1:'#00402b',c2:'#0caa6e'},{id:'perfiles',name:'Perfiles',c1:'#0a1f44',c2:'#2f6fd0'},{id:'nomina',name:'Nómina',c1:'#00402b',c2:'#0c8a5a'}],
+ banorte:[{id:'enlace',name:'Enlace',c1:'#7a0019',c2:'#eb0029'},{id:'nomina',name:'Nómina',c1:'#7a0019',c2:'#c2102a'},{id:'oro',name:'Oro',c1:'#7a5f28',c2:'#e6c879'}],
+ hsbc:[{id:'flex',name:'Cuenta Flexible',c1:'#9a0000',c2:'#e30613'},{id:'nomina',name:'Nómina',c1:'#7a0000',c2:'#c2102a'},{id:'advance',name:'Advance',c1:'#3a3f48',c2:'#aab0bb'},{id:'premier',name:'Premier',c1:'#0e0f12',c2:'#33373f'}],
+ nu:[{id:'nu',name:'Cuenta Nu',c1:'#4a0a82',c2:'#9b22e6'}],
+ hey:[{id:'hey',name:'Hey',c1:'#00524a',c2:'#00d4af'}],
+ mp:[{id:'mp',name:'Mercado Pago',c1:'#0058a3',c2:'#22b6f0'}],
+ stori:[{id:'stori',name:'Stori Débito',c1:'#3d1a9e',c2:'#8a5cff'}],
+ klar:[{id:'klar',name:'Klar',c1:'#a8005a',c2:'#ff5cb0'},{id:'plus',name:'Klar Plus',c1:'#120a18',c2:'#a8005a'}],
+ rappi:[{id:'rappi',name:'RappiPay',c1:'#161616',c2:'#ff5a2c'}],
+ scotia:[{id:'debito',name:'Débito',c1:'#7a0000',c2:'#ec111a'},{id:'nomina',name:'Nómina',c1:'#7a0000',c2:'#c2102a'}],
+ inbursa:[{id:'debito',name:'Débito',c1:'#073d28',c2:'#13b86a'},{id:'nomina',name:'Nómina',c1:'#073d28',c2:'#0f8a52'}],
+ invex:[{id:'debito',name:'Débito',c1:'#08304d',c2:'#2877b0'}],
+ banregio:[{id:'debito',name:'Débito',c1:'#b85410',c2:'#f7941d'}],
+ bajio:[{id:'debito',name:'Débito',c1:'#0a5c2a',c2:'#16b14a'}],
+ afirme:[{id:'debito',name:'Débito',c1:'#6e0f22',c2:'#c8203f'}],
+ bancoppel:[{id:'debito',name:'Débito',c1:'#08407f',c2:'#1f8ad6'}],
+ azteca:[{id:'guardadito',name:'Guardadito',c1:'#0a5c2e',c2:'#2db84a'},{id:'nomina',name:'Nómina',c1:'#0a5c2e',c2:'#1f9a3a'}],
+ mifel:[{id:'debito',name:'Débito',c1:'#0a2f5c',c2:'#2f6fb0'}],
+ multiva:[{id:'debito',name:'Débito',c1:'#7a3a0a',c2:'#e07a1a'}],
+ uala:[{id:'uala',name:'Ualá',c1:'#0a5c54',c2:'#16c4b0'}],
+ didi:[{id:'didi',name:'DiDi Card',c1:'#b85410',c2:'#ff8c1a'}],
+ plata:[{id:'plata',name:'Plata',c1:'#3a3f48',c2:'#aab0bb'}],
+ albo:[{id:'albo',name:'albo',c1:'#1a2f9e',c2:'#4d6bff'}],
+ cuenca:[{id:'cuenca',name:'Cuenca',c1:'#0a3d3a',c2:'#13a89a'}],
+ revolut:[{id:'standard',name:'Standard',c1:'#0e1014',c2:'#3a4150'},{id:'plus',name:'Plus',c1:'#1a2230',c2:'#4a5fb0'},{id:'premium',name:'Premium',c1:'#0e0f12',c2:'#33373f'},{id:'metal',name:'Metal',c1:'#16181d',c2:'#8a8f99'}],
+};
+function debitProducts(bankId){if(DEBIT_PRODUCTS[bankId])return DEBIT_PRODUCTS[bankId];const b=bankById(bankId);return [{id:'debito',name:'Débito',c1:b.c1,c2:b.c2}];}
+function prodCatalogFor(type,bankId){return type==='debito'?debitProducts(bankId):CARD_PRODUCTS[bankId];}
+const isDebit=c=>c&&c.type==='debito';
+const debitTotal=()=>DB.cards.filter(isDebit).reduce((s,c)=>s+(c.balance||0),0);
 const CATS=[
   {id:'comida',name:'Comida',i:'comida',kw:['comida','tacos','almuerzo','desayuno','lunch']},
   {id:'restaurante',name:'Restaurante',i:'restaurante',kw:['restaurante','cena','rest','comer']},
@@ -894,7 +928,7 @@ const catById=id=>CATS.find(c=>c.id===id)||CATS[CATS.length-1];
 function cardC(c){const b=bankById(c.bank);return [c.c1||b.c1,c.c2||b.c2];}
 function cgrad(c){const g=cardC(c);return 'linear-gradient(135deg,'+g[0]+','+g[1]+')';}
 function prodName(bankId,p){if(p.full)return p.full;const bn=bankById(bankId).name;return p.name.toLowerCase().indexOf(bn.toLowerCase())>=0?p.name:bn+' '+p.name;}
-function designLabel(c){const b=bankById(c.bank);if(c.product&&CARD_PRODUCTS[c.bank]){const p=CARD_PRODUCTS[c.bank].find(x=>x.id===c.product);if(p)return prodName(c.bank,p);}return b.name;}
+function designLabel(c){const b=bankById(c.bank),cat=isDebit(c)?debitProducts(c.bank):CARD_PRODUCTS[c.bank];if(c.product&&cat){const p=cat.find(x=>x.id===c.product);if(p)return prodName(c.bank,p);}return b.name;}
 // pago mensual a meses (MSI) de una tarjeta = suma de (monto/meses) de sus compras a meses
 const msiMonthly=e=>e.amount/(e.months||1);
 const msiLeft=e=>Math.max(0,(e.months||1)-(e.monthsPaid||0));
@@ -938,7 +972,7 @@ function renderHome(){
   $('#prem-chip').innerHTML=ic('crown',14)+(DB.settings.premium?'PREMIUM':'Premium');
   $('#ic-trend').innerHTML=ic('wallet',14)+' Mi patrimonio'+qh('patrimonio');
   $('#home-add').innerHTML=ic('plus')+'Anotar movimiento';$('#home-add').onclick=()=>go('exp');
-  const sav=DB.savings.reduce((s,x)=>s+(x.current||0),0),inv=invTotalValue(),patr=sav+inv;
+  const sav=DB.savings.reduce((s,x)=>s+(x.current||0),0),inv=invTotalValue(),patr=sav+inv+debitTotal();
   $('#home-net').textContent=fmt(patr);
   const tot=monthExpenses().filter(e=>!(e.months>1)).reduce((s,e)=>s+e.amount,0)+msiMonthlyAll(),inT=monthIncomes().reduce((s,e)=>s+e.amount,0),bal=inT-tot;
   $('#h-in').textContent='$'+fmt(inT);
@@ -974,13 +1008,18 @@ function renderCards(){
   const totDebt=DB.cards.reduce((s,c)=>s+(c.debt||0),0),totMsi=DB.cards.reduce((s,c)=>s+cardMsiMonthly(c.id),0);
   let head='';
   if(totDebt>0||totMsi>0)head='<div class="panel" style="display:flex;gap:14px"><div style="flex:1"><div class="label" style="margin-bottom:7px">Debes en total</div><div class="tnum" style="font-size:23px;font-weight:800">$'+fmt(totDebt)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin-bottom:7px">Pago a meses</div><div class="tnum" style="font-size:23px;font-weight:800;color:var(--gold2)">$'+fmt(totMsi)+'<span style="font-size:12px;color:var(--mut);font-weight:500"> /mes</span></div></div></div>';
-  box.innerHTML=head+DB.cards.map((c,i)=>{const b=bankById(c.bank),msi=cardMsiMonthly(c.id);
-    let bar='',rightCol='';
+  box.innerHTML=head+DB.cards.map((c,i)=>{
+    const controls=(DB.cards.length>1?'<div class="cc-reorder"><button type="button" onclick="moveCard(event,\''+c.id+'\',-1)" '+(i===0?'disabled':'')+'>'+ic('chevU',17)+'</button><span class="sep"></span><button type="button" onclick="moveCard(event,\''+c.id+'\',1)" '+(i===DB.cards.length-1?'disabled':'')+'>'+ic('chevD',17)+'</button></div>':'')+'<button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button>';
+    const brand=(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'');
+    if(isDebit(c)){
+      return '<div class="cc rise" data-id="'+c.id+'" onclick="openDebitDetail(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms">'+controls+'<div class="crow"><div class="bank">'+c.name+brand+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">$'+fmt(c.balance||0)+'</div><div class="l">'+ic('wallet',11)+'Saldo</div></div><div class="d" style="margin-left:auto;text-align:right"><div class="v" style="font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.85)">DÉBITO</div></div></div></div></div>';
+    }
+    const msi=cardMsiMonthly(c.id);let bar='',rightCol='';
     if((c.limit||0)>0){const usado=Math.max(0,c.debt||0),disp=Math.max(0,c.limit-usado),pu=Math.min(100,Math.round(usado/c.limit*100));
       rightCol='<div class="d" style="margin-left:auto;text-align:right"><div class="v tnum">$'+fmt(disp)+'</div><div class="l" style="justify-content:flex-end">Disponible</div></div>';
       bar='<div class="ccbar"><i style="width:'+pu+'%;background:'+(pu>85?'#ff8a80':'#fff')+'"></i></div><div class="cclbl"><span>Usado $'+fmt(usado)+'</span><span>Límite $'+fmt(c.limit)+'</span></div>';}
     else if((c.debt||0)>0)rightCol='<div class="d" style="margin-left:auto;text-align:right"><div class="v tnum">$'+fmt(c.debt)+'</div><div class="l" style="justify-content:flex-end">Debes</div></div>';
-    return '<div class="cc rise" data-id="'+c.id+'" onclick="openCard(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms">'+(DB.cards.length>1?'<div class="cc-reorder"><button type="button" onclick="moveCard(event,\''+c.id+'\',-1)" '+(i===0?'disabled':'')+'>'+ic('chevU',17)+'</button><span class="sep"></span><button type="button" onclick="moveCard(event,\''+c.id+'\',1)" '+(i===DB.cards.length-1?'disabled':'')+'>'+ic('chevD',17)+'</button></div>':'')+'<button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button><div class="crow"><div class="bank">'+c.name+(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'')+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">'+(c.cutDay||'–')+'</div><div class="l">'+ic('scissors',11)+'Corte</div></div><div class="d"><div class="v tnum">'+(c.payDay||'–')+'</div><div class="l">'+ic('coins',11)+'Pago</div></div>'+rightCol+'</div>'+bar+(msi>0?'<div class="msiline">'+ic('suscrip',13)+'$'+fmt(msi)+' / mes a meses</div>':'')+'</div></div>';}).join('');
+    return '<div class="cc rise" data-id="'+c.id+'" onclick="openCard(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms">'+controls+'<div class="crow"><div class="bank">'+c.name+brand+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">'+(c.cutDay||'–')+'</div><div class="l">'+ic('scissors',11)+'Corte</div></div><div class="d"><div class="v tnum">'+(c.payDay||'–')+'</div><div class="l">'+ic('coins',11)+'Pago</div></div>'+rightCol+'</div>'+bar+(msi>0?'<div class="msiline">'+ic('suscrip',13)+'$'+fmt(msi)+' / mes a meses</div>':'')+'</div></div>';}).join('');
 }
 
 /* ===== Reordenar tarjetas (botones ▲▼) ===== */
@@ -1155,7 +1194,7 @@ function setBudget(cat,val){DB.settings.budgets=DB.settings.budgets||{};const v=
 function healthScore(){
   const ing=monthIncomes().reduce((s,e)=>s+e.amount,0);
   const gas=monthExpenses().filter(e=>!(e.months>1)).reduce((s,e)=>s+e.amount,0)+msiMonthlyAll();
-  const bal=ing-gas,patr=DB.savings.reduce((s,x)=>s+(x.current||0),0)+invTotalValue();
+  const bal=ing-gas,patr=DB.savings.reduce((s,x)=>s+(x.current||0),0)+invTotalValue()+debitTotal();
   const debt=DB.cards.reduce((s,c)=>s+(c.debt||0)+cardMsiRemaining(c.id),0),limit=DB.cards.reduce((s,c)=>s+(c.limit||0),0);
   const use=limit>0?debt/limit:0;let score=50;const fac=[];
   if(bal>=0){score+=18;fac.push(['ok','Gastas menos de lo que ganas']);}else{score-=18;fac.push(['bad','Gastas más de lo que entra este mes']);}
@@ -1259,32 +1298,44 @@ function renderSvc(){
   box.innerHTML=html;
 }
 
-let cartTab='ahorros';
+let cartTab='debito';
 function renderCart(){
   $('#ic-piggy').innerHTML=ic('wallet',14)+' Patrimonio total';
-  const savT=DB.savings.reduce((s,x)=>s+(x.current||0),0),invT=invTotalValue(),g=invTotalGain();
-  $('#save-total').textContent=fmt(savT+invT);
+  const debT=debitTotal(),savT=DB.savings.reduce((s,x)=>s+(x.current||0),0),invT=invTotalValue();
+  $('#save-total').textContent=fmt(debT+savT+invT);
+  $('#cart-deb').textContent='$'+fmt(debT);
   $('#cart-sav').textContent='$'+fmt(savT);
   $('#cart-inv').textContent='$'+fmt(invT);
-  $('#cart-gain').textContent=(g>=0?'+$':'-$')+fmt(Math.abs(g));
-  $('#cart-segs').innerHTML='<div class="seg '+(cartTab==='ahorros'?'on':'')+'" onclick="setCart(\'ahorros\')">Ahorros</div><div class="seg '+(cartTab==='inversiones'?'on':'')+'" onclick="setCart(\'inversiones\')">Inversiones</div>';
-  $('#cart-add').innerHTML=ic('plus')+(cartTab==='ahorros'?'Nueva meta de ahorro':'Nueva inversión');
-  $('#cart-add').onclick=cartTab==='ahorros'?addSave:addInv;
-  $('#cart-content').innerHTML=cartTab==='ahorros'?saveHTML():invHTML();
+  $('#cart-segs').innerHTML='<div class="seg '+(cartTab==='debito'?'on':'')+'" onclick="setCart(\'debito\')">Débito</div><div class="seg '+(cartTab==='ahorros'?'on':'')+'" onclick="setCart(\'ahorros\')">Ahorros</div><div class="seg '+(cartTab==='inversiones'?'on':'')+'" onclick="setCart(\'inversiones\')">Inversiones</div>';
+  $('#cart-add').innerHTML=ic('plus')+(cartTab==='debito'?'Agregar tarjeta de débito':(cartTab==='ahorros'?'Nueva meta de ahorro':'Nueva inversión'));
+  $('#cart-add').onclick=cartTab==='debito'?addDebitCard:(cartTab==='ahorros'?addSave:addInv);
+  $('#cart-content').innerHTML=cartTab==='debito'?debitCartHTML():(cartTab==='ahorros'?saveHTML():invHTML());
 }
 function setCart(t){cartTab=t;renderCart();}
+function addDebitCard(){if(!DB.settings.premium&&DB.cards.length>=3){toast('Plan gratis: hasta 3 tarjetas');openPremium();return;}openCardForm(null,'debito');}
+function debitCartHTML(){const list=DB.cards.filter(isDebit);
+  if(!list.length)return '<div class="empty"><div class="e">'+ic('card',30)+'</div><p>Agrega tus tarjetas de débito con su saldo. Suman a tu patrimonio y puedes pagar gastos con ellas.</p></div>';
+  return list.map((c,i)=>'<div class="panel press rise" style="animation-delay:'+(i*60)+'ms;cursor:pointer" onclick="openDebitDetail(\''+c.id+'\')"><div style="display:flex;align-items:center;gap:11px;min-width:0"><div class="ci" style="width:42px;height:42px;border-radius:13px;background:'+cgrad(c)+';color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center">'+ic('card',20)+'</div><div style="min-width:0"><div style="font-size:15.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.name+'</div><div style="font-size:12px;color:var(--mut)">'+designLabel(c)+' · •••• '+(c.last4||'••••')+'</div></div></div><div style="margin-top:11px"><span class="tnum" style="font-weight:800;font-size:20px">$'+fmt(c.balance||0)+'</span></div>'+moveBtns('debit',c.id)+'</div>').join('');}
+function openDebitDetail(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;
+  openModal('<h3>'+c.name+'</h3><div class="msub">'+designLabel(c)+' · Débito</div>'+
+    '<div class="cc" style="background:'+cgrad(c)+';margin-bottom:16px"><div class="crow"><div class="bank">'+c.name+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div style="margin-top:13px;font-size:11px;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.08em">Saldo</div><div class="tnum" style="font-size:24px;font-weight:800;color:#fff">$'+fmt(c.balance||0)+'</div></div></div>'+
+    '<div style="display:flex;gap:10px;margin-bottom:18px"><button class="btn ghost" type="button" style="flex:1;box-shadow:none" onclick="openMove(\'debit\',\''+id+'\',\'in\')">'+ic('down',18)+'Ingresar</button><button class="btn ghost" type="button" style="flex:1;box-shadow:none" onclick="openMove(\'debit\',\''+id+'\',\'out\')">'+ic('up',18)+'Retirar</button></div>'+
+    histColumns(c.history)+
+    '<button class="btn ghost" type="button" style="box-shadow:none;margin-top:4px" onclick="editCard(\''+id+'\')">'+ic('pencil',17)+'Editar tarjeta</button>');
+}
 function saveHTML(){
   if(!DB.savings.length)return '<div class="empty"><div class="e">'+ic('piggy',30)+'</div><p>Crea metas de ahorro, en tarjeta o efectivo, y mira tu progreso.</p></div>';
   return DB.savings.map((s,i)=>{const pct=s.target?Math.min(100,Math.round((s.current/s.target)*100)):0;return '<div class="panel press rise" style="animation-delay:'+(i*60)+'ms;cursor:pointer" onclick="openSaveDetail(\''+s.id+'\')"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div style="display:flex;align-items:center;gap:11px;min-width:0"><div class="ci" style="width:42px;height:42px;border-radius:13px;background:var(--accent-s);color:var(--accent);flex-shrink:0;display:flex;align-items:center;justify-content:center">'+ic(s.type==='cash'?'banknote':'card',20)+'</div><div style="font-size:15.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+s.name+'</div></div>'+(s.target?'<div class="tnum" style="font-size:13px;color:var(--mut);font-weight:600">'+pct+'%</div>':'')+'</div>'+(s.target?'<div class="prog"><i style="width:'+pct+'%"></i></div>':'<div style="height:10px"></div>')+'<div style="display:flex;justify-content:space-between;align-items:baseline"><span class="tnum" style="font-weight:800;font-size:19px">$'+fmt(s.current||0)+'</span>'+(s.target?'<span class="tnum" style="color:var(--mut);font-size:13px">meta $'+fmt(s.target)+'</span>':'')+'</div>'+moveBtns('save',s.id)+'</div>';}).join('');
 }
 function moveBtns(kind,id){return '<div style="display:flex;gap:9px;margin-top:14px"><button class="btn ghost" type="button" style="flex:1;padding:10px;font-size:13.5px;box-shadow:none" onclick="event.stopPropagation();openMove(\''+kind+'\',\''+id+'\',\'in\')">'+ic('down',16)+'Ingresar</button><button class="btn ghost" type="button" style="flex:1;padding:10px;font-size:13.5px;box-shadow:none" onclick="event.stopPropagation();openMove(\''+kind+'\',\''+id+'\',\'out\')">'+ic('up',16)+'Retirar</button></div>';}
-function openMove(kind,id,dir){const isIn=dir==='in',obj=kind==='save'?DB.savings.find(x=>x.id===id):DB.investments.find(x=>x.id===id);if(!obj)return;
+function openMove(kind,id,dir){const isIn=dir==='in',obj=kind==='save'?DB.savings.find(x=>x.id===id):(kind==='debit'?DB.cards.find(x=>x.id===id):DB.investments.find(x=>x.id===id));if(!obj)return;
   openModal('<h3>'+(isIn?'Ingresar dinero':'Retirar dinero')+'</h3><div class="msub">'+obj.name+(kind==='inv'?' · se ajusta tu saldo':'')+'</div><div class="field"><label>Monto a '+(isIn?'ingresar':'retirar')+'</label><input id="mv-in" inputmode="decimal" placeholder="0"></div><button class="btn" onclick="applyMove(\''+kind+'\',\''+id+'\',\''+dir+'\')">'+ic(isIn?'down':'up',18)+(isIn?'Ingresar':'Retirar')+'</button>');
   setTimeout(()=>{try{$('#mv-in').focus();}catch(e){}},250);
 }
 function applyMove(kind,id,dir){const amt=num($('#mv-in').value);if(!amt){toast('Escribe el monto');return;}
   const entry={t:dir,amt:amt,date:new Date().toISOString()};
-  if(kind==='save'){const s=DB.savings.find(x=>x.id===id);s.current=Math.max(0,(s.current||0)+(dir==='in'?amt:-amt));s.history=s.history||[];s.history.push(entry);save();toast(dir==='in'?'Dinero ingresado ✓':'Retiro registrado ✓');renderAll();openSaveDetail(id);}
+  if(kind==='debit'){const c=DB.cards.find(x=>x.id===id);c.balance=Math.max(0,(c.balance||0)+(dir==='in'?amt:-amt));c.history=c.history||[];c.history.push(entry);save();toast(dir==='in'?'Dinero ingresado ✓':'Retiro registrado ✓');renderAll();openDebitDetail(id);}
+  else if(kind==='save'){const s=DB.savings.find(x=>x.id===id);s.current=Math.max(0,(s.current||0)+(dir==='in'?amt:-amt));s.history=s.history||[];s.history.push(entry);save();toast(dir==='in'?'Dinero ingresado ✓':'Retiro registrado ✓');renderAll();openSaveDetail(id);}
   else{const inv=DB.investments.find(x=>x.id===id),val=invCalc(inv).value,nv=Math.max(0,val+(dir==='in'?amt:-amt));inv.principal=nv;inv.date=new Date().toISOString();inv.history=inv.history||[];inv.history.push(entry);save();toast(dir==='in'?'Dinero ingresado ✓':'Retiro registrado ✓');renderAll();openInvDetail(id);}
 }
 function histColumns(hist){
@@ -1447,7 +1498,10 @@ function capAdd(ctx,fixedCard,amt,note,dateEl){
   const st=capState[ctx],n=note?note.value.trim():'';
   const dstr=dateEl&&dateEl.value?dateEl.value:'',date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString();
   if(ctx==='balance'&&st.mode==='income'){DB.incomes.push({id:uid(),amount:v,category:st.icat,note:n,ticket:st.tk||null,date:date,createdAt:Date.now()});toast('Ingreso guardado');}
-  else{const card=(ctx==='card')?fixedCard:st.cardId;DB.expenses.push({id:uid(),amount:v,cardId:card||null,category:st.cat,note:n,months:st.months,ticket:st.tk||null,date:date,createdAt:Date.now()});toast('Gasto guardado');}
+  else{const card=(ctx==='card')?fixedCard:st.cardId;DB.expenses.push({id:uid(),amount:v,cardId:card||null,category:st.cat,note:n,months:st.months,ticket:st.tk||null,date:date,createdAt:Date.now()});
+    const dc=card?DB.cards.find(x=>x.id===card):null;
+    if(dc&&isDebit(dc)){dc.balance=Math.max(0,(dc.balance||0)-v);dc.history=dc.history||[];dc.history.push({t:'out',amt:v,date:date});toast('Gasto pagado con débito ✓');}
+    else toast('Gasto guardado');}
   st.months=1;st.tk=null;save();renderAll();if(ctx==='card'&&detailShown())renderCardDetail(fixedCard);
 }
 /* tickets (foto) */
@@ -1478,20 +1532,22 @@ function openModal(h){modalEl.innerHTML='<div class="modal-top"><span class="gra
 function closeModal(){modalBg.classList.remove('show');}
 modalBg.onclick=e=>{if(e.target===modalBg)closeModal();};
 
-let pickBank='bbva',pickCat='otros',pickProd=null,cardStep='bank',cardDraft={},cardEditId=null,cardNameAuto=true;
-function renderProdField(){const el=$('#prodfield');if(!el)return;const prods=CARD_PRODUCTS[pickBank];if(!prods){el.innerHTML='';}else el.innerHTML='<label>Diseño de tarjeta</label><div class="prodgrid">'+prods.map(p=>'<div class="prodcard'+((pickProd&&pickProd.id===p.id)?' on':'')+'" onclick="pickProduct(\''+p.id+'\')" style="background:linear-gradient(135deg,'+p.c1+','+p.c2+')">'+p.name+'</div>').join('')+'</div>';toggleLimitField();}
+let pickBank='bbva',pickCat='otros',pickProd=null,cardStep='bank',cardDraft={},cardEditId=null,cardNameAuto=true,pickType='credito';
+function renderProdField(){const el=$('#prodfield');if(!el)return;const prods=prodCatalogFor(pickType,pickBank);if(!prods||!prods.length){el.innerHTML='';return;}el.innerHTML='<label>Diseño'+(pickType==='debito'?' (débito)':' de tarjeta')+'</label><div class="prodgrid">'+prods.map(p=>'<div class="prodcard'+((pickProd&&pickProd.id===p.id)?' on':'')+'" onclick="pickProduct(\''+p.id+'\')" style="background:linear-gradient(135deg,'+p.c1+','+p.c2+')">'+p.name+'</div>').join('')+'</div>';toggleLimitField();}
 function toggleLimitField(){const lf=$('#c-limit-field');if(!lf)return;if(pickProd&&pickProd.charge){lf.style.display='none';}else lf.style.display='';}
-function pickProduct(id){const p=(CARD_PRODUCTS[pickBank]||[]).find(x=>x.id===id);if(!p)return;pickProd=p;const nm=$('#c-name'),bn=bankById(pickBank).name;if(nm&&(!nm.value||nm.value===bn||cardNameAuto)){nm.value=prodName(pickBank,p);cardNameAuto=true;}renderProdField();}
+function pickProduct(id){const p=(prodCatalogFor(pickType,pickBank)||[]).find(x=>x.id===id);if(!p)return;pickProd=p;const nm=$('#c-name'),bn=bankById(pickBank).name;if(nm&&(!nm.value||nm.value===bn||cardNameAuto)){nm.value=prodName(pickBank,p);cardNameAuto=true;}renderProdField();}
 function addCard(){if(!DB.settings.premium&&DB.cards.length>=3){toast('Plan gratis: hasta 3 tarjetas');openPremium();return;}openCardForm();}
 function editCard(id){openCardForm(DB.cards.find(c=>c.id===id));}
-function openCardForm(card){
+function openCardForm(card,initType){
   cardEditId=card?card.id:null;pickBank=card?card.bank:'';
-  pickProd=(card&&card.product&&CARD_PRODUCTS[card.bank])?CARD_PRODUCTS[card.bank].find(x=>x.id===card.product):null;
-  cardDraft=card?{name:card.name||'',last4:card.last4||'',cut:card.cutDay||'',pay:card.payDay||'',limit:card.limit||'',debt:card.debt||''}:{name:'',last4:'',cut:'',pay:'',limit:'',debt:''};
+  pickType=card?(card.type||'credito'):(initType||'credito');
+  pickProd=(card&&card.product)?(prodCatalogFor(pickType,card.bank)||[]).find(x=>x.id===card.product):null;
+  cardDraft=card?{name:card.name||'',last4:card.last4||'',cut:card.cutDay||'',pay:card.payDay||'',limit:card.limit||'',debt:card.debt||'',balance:card.balance||''}:{name:'',last4:'',cut:'',pay:'',limit:'',debt:'',balance:''};
   cardNameAuto=card?false:true;
   cardStep=card?'form':'bank';cardModalRender();
 }
-function captureDraft(){if($('#c-name'))cardDraft={name:$('#c-name').value,last4:$('#c-last4').value,cut:$('#c-cut').value,pay:$('#c-pay').value,limit:$('#c-limit')?$('#c-limit').value:'',debt:$('#c-debt').value};}
+function captureDraft(){if($('#c-name'))cardDraft={name:$('#c-name').value,last4:$('#c-last4').value,cut:$('#c-cut')?$('#c-cut').value:'',pay:$('#c-pay')?$('#c-pay').value:'',limit:$('#c-limit')?$('#c-limit').value:'',debt:$('#c-debt')?$('#c-debt').value:'',balance:$('#c-balance')?$('#c-balance').value:''};}
+function setCardType(t){captureDraft();pickType=t;pickProd=null;if(cardNameAuto)cardDraft.name='';cardModalRender();}
 function selectBank(id){pickBank=id;pickProd=null;if(cardNameAuto)cardDraft.name='';cardStep='form';cardModalRender();}
 function cardBackToBank(){captureDraft();cardStep='bank';cardModalRender();}
 function cardModalRender(){
@@ -1500,21 +1556,32 @@ function cardModalRender(){
     $('#bankpick').querySelectorAll('.bp').forEach(el=>el.onclick=()=>selectBank(el.dataset.b));
     return;
   }
-  const d=cardDraft,ed=!!cardEditId,b=bankById(pickBank);
-  openModal('<div style="display:flex;align-items:center;gap:11px;margin-bottom:16px"><button class="set-back" type="button" onclick="cardBackToBank()">'+ic('chevL',20)+'</button><div><div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.06em">Banco</div><div style="font-family:\'Outfit\',sans-serif;font-size:18px;font-weight:700">'+b.name+'</div></div></div>'+
-   '<div class="field" id="prodfield"></div>'+
-   '<div class="field"><label>Nombre (como quieras llamarla)</label><input id="c-name" placeholder="Ej: BBVA Oro" value="'+d.name+'" oninput="cardNameAuto=false"></div>'+
-   '<div class="field"><label>Últimos 4 dígitos (opcional)</label><input id="c-last4" inputmode="numeric" maxlength="4" placeholder="1234" value="'+d.last4+'"></div>'+
-   '<div class="field"><label>Fechas (día del mes)'+qh('corte')+qh('pago')+'</label><div class="two"><div><input id="c-cut" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Corte" value="'+d.cut+'"></div><div><input id="c-pay" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Pago" value="'+d.pay+'"></div></div></div>'+
+  const d=cardDraft,ed=!!cardEditId,b=bankById(pickBank),deb=pickType==='debito';
+  const credFields='<div class="field"><label>Fechas (día del mes)'+qh('corte')+qh('pago')+'</label><div class="two"><div><input id="c-cut" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Corte" value="'+d.cut+'"></div><div><input id="c-pay" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Pago" value="'+d.pay+'"></div></div></div>'+
    '<div class="field" id="c-limit-field"><label>Línea de crédito (límite)</label><input id="c-limit" inputmode="decimal" placeholder="Ej: 50,000" value="'+d.limit+'"></div>'+
-   '<div class="field"><label>¿Cuánto debes en total? (opcional)</label><input id="c-debt" inputmode="decimal" placeholder="0" value="'+d.debt+'"></div>'+
+   '<div class="field"><label>¿Cuánto debes en total? (opcional)</label><input id="c-debt" inputmode="decimal" placeholder="0" value="'+d.debt+'"></div>';
+  const debFields='<div class="field"><label>Saldo (lo que tienes guardado)</label><input id="c-balance" inputmode="decimal" placeholder="0" value="'+d.balance+'"></div>';
+  openModal('<div style="display:flex;align-items:center;gap:11px;margin-bottom:14px"><button class="set-back" type="button" onclick="cardBackToBank()">'+ic('chevL',20)+'</button><div><div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.06em">Banco</div><div style="font-family:\'Outfit\',sans-serif;font-size:18px;font-weight:700">'+b.name+'</div></div></div>'+
+   '<div class="segs" style="margin-bottom:15px"><div class="seg'+(!deb?' on':'')+'" onclick="setCardType(\'credito\')">💳 Crédito</div><div class="seg'+(deb?' on':'')+'" onclick="setCardType(\'debito\')">🏧 Débito</div></div>'+
+   '<div class="field" id="prodfield"></div>'+
+   '<div class="field"><label>Nombre (como quieras llamarla)</label><input id="c-name" placeholder="'+(deb?'Ej: BBVA Débito':'Ej: BBVA Oro')+'" value="'+d.name+'" oninput="cardNameAuto=false"></div>'+
+   '<div class="field"><label>Últimos 4 dígitos (opcional)</label><input id="c-last4" inputmode="numeric" maxlength="4" placeholder="1234" value="'+d.last4+'"></div>'+
+   (deb?debFields:credFields)+
    '<button class="btn" onclick="saveCard(\''+(ed?cardEditId:'')+'\')">'+ic('check')+(ed?'Guardar cambios':'Agregar tarjeta')+'</button>'+(ed?'<div class="del" onclick="delCard(\''+cardEditId+'\')">'+ic('trash',17)+'Eliminar tarjeta</div>':''));
   renderProdField();
 }
-function saveCard(id){const name=$('#c-name').value.trim()||bankById(pickBank).name,cut=clampDay($('#c-cut').value),pay=clampDay($('#c-pay').value),last4=$('#c-last4').value.trim(),debt=num($('#c-debt').value),limit=num($('#c-limit').value);
-  const pc1=pickProd?pickProd.c1:null,pc2=pickProd?pickProd.c2:null,prod=pickProd?pickProd.id:null,charge=pickProd&&pickProd.charge?1:0,lim=charge?0:limit;
-  if(id){const c=DB.cards.find(x=>x.id===id);Object.assign(c,{bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});save();closeModal();toast('Tarjeta guardada');renderAll();if(detailShown())renderCardDetail(id);}
-  else{const nid=uid();DB.cards.push({id:nid,bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});save();closeModal();toast('Tarjeta agregada');renderAll();openCard(nid);}
+function saveCard(id){const name=$('#c-name').value.trim()||bankById(pickBank).name,last4=$('#c-last4').value.trim();
+  const pc1=pickProd?pickProd.c1:null,pc2=pickProd?pickProd.c2:null,prod=pickProd?pickProd.id:null;
+  if(pickType==='debito'){
+    const balance=num($('#c-balance').value),base={type:'debito',bank:pickBank,name,last4,balance,c1:pc1,c2:pc2,product:prod};
+    if(id){const c=DB.cards.find(x=>x.id===id);Object.assign(c,base);save();closeModal();toast('Tarjeta guardada');renderAll();}
+    else{const nid=uid();DB.cards.push(Object.assign({id:nid,history:[]},base));save();closeModal();toast('Tarjeta de débito agregada ✓');renderAll();go('save');setCart('debito');}
+    return;
+  }
+  const cut=clampDay($('#c-cut').value),pay=clampDay($('#c-pay').value),debt=num($('#c-debt').value),limit=num($('#c-limit').value);
+  const charge=pickProd&&pickProd.charge?1:0,lim=charge?0:limit;
+  if(id){const c=DB.cards.find(x=>x.id===id);Object.assign(c,{type:'credito',bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});save();closeModal();toast('Tarjeta guardada');renderAll();if(detailShown())renderCardDetail(id);}
+  else{const nid=uid();DB.cards.push({id:nid,type:'credito',bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});save();closeModal();toast('Tarjeta agregada');renderAll();openCard(nid);}
 }
 function delCard(id){DB.cards=DB.cards.filter(c=>c.id!==id);DB.expenses=DB.expenses.filter(e=>!(e.cardId===id&&e.months>1));DB.expenses.forEach(e=>{if(e.cardId===id)e.cardId=null;});save();closeModal();toast('Tarjeta eliminada');renderAll();if(detailShown())closeCard();}
 
