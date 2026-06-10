@@ -224,6 +224,13 @@ body{
 .sect h2{font-size:17px;font-weight:700;}
 .svc-seclbl{display:flex;align-items:center;gap:7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut2);font-weight:600;margin:0 4px 7px;}
 .svc-seclbl svg{width:14px;height:14px;opacity:.8;}
+.svc-ico{width:34px;height:34px;border-radius:10px;background:var(--icobg);color:var(--icofg);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.svc-ico svg{width:18px;height:18px;}
+.addcard{border:1.6px dashed var(--line2);border-radius:18px;padding:20px 18px;text-align:center;cursor:pointer;transition:transform .14s,background .18s;margin-bottom:6px;background:rgba(var(--accrgb),.035);}
+.addcard:active{transform:scale(.99);background:rgba(var(--accrgb),.07);}
+.addcard .acp{width:46px;height:46px;border-radius:14px;background:var(--icobg);color:var(--icofg);display:flex;align-items:center;justify-content:center;margin:0 auto 11px;}
+.addcard .act{font-weight:700;font-size:15px;font-family:'Outfit',sans-serif;}
+.addcard .ach{font-size:12.5px;color:var(--mut);margin-top:5px;line-height:1.5;}
 
 /* Accesos rápidos (Inicio) */
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
@@ -1316,15 +1323,16 @@ function uploadStatement(){
 
 let balFilter='todos';
 function setBalFilter(f){balFilter=f;renderBalance();}
+function svcHead(icon,title,right,mt){return '<div class="sect" style="margin:'+(mt||'26px')+' 0 11px"><h2 style="display:flex;align-items:center;gap:10px;font-size:17px"><span class="svc-ico">'+ic(icon,18)+'</span>'+title+'</h2>'+(right||'')+'</div>';}
+function svcAddCard(onclick,label,hint){return '<div class="addcard" onclick="'+onclick+'"><div class="acp">'+ic('plus',22)+'</div><div class="act">'+label+'</div><div class="ach">'+hint+'</div></div>';}
 function schedSectionHTML(){
   const list=DB.sched||[];
-  let h='<div class="sect" style="margin:26px 0 4px"><h2 style="display:flex;align-items:center;gap:9px;font-size:17px">'+ic('repeat',18)+'Ingresos programados</h2></div><div class="msub" style="margin:0 2px 12px">Dinero que esperas cada mes; cuenta cuando confirmes que te pagaron</div>';
-  if(!list.length){h+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:18px 16px">Ej: tu <b>sueldo</b> el día 18, una <b>renta</b> que cobras…</div>';}
-  else{h+='<div class="panel" style="padding:4px 14px;margin-bottom:4px">';
-    list.forEach(s=>{const got=schedGotThisMonth(s);
-      h+='<div class="row-item" onclick="openSchedForm(\''+s.id+'\')"><div class="ci" style="background:rgba(54,211,153,.13);color:#36d399">'+ic('repeat',20)+'</div><div class="ti"><div class="a">'+(s.name||icatById(s.category).name)+'</div><div class="b">Cada día '+(s.day||'–')+' · '+(got?'<span style="color:#36d399;font-weight:600">Recibido este mes ✓</span>':'<span style="color:var(--warn)">Aún no te pagan</span>')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:10px"><div class="amt tnum" style="color:'+(got?'var(--mut)':'#36d399')+'">$'+fmt(s.amount||0)+'</div>'+(got?'<button class="svc-check on" type="button" onclick="event.stopPropagation()">'+ic('check',16)+'</button>':'<button class="btn ghost" type="button" style="width:auto;padding:7px 11px;font-size:12px;box-shadow:none" onclick="event.stopPropagation();receiveSched(\''+s.id+'\')">Ya lo recibí</button>')+'</div></div>';});
-    h+='</div>';}
-  h+='<button class="btn ghost" style="margin-top:8px" onclick="openSchedForm()">'+ic('plus')+'Programar un ingreso</button>';
+  let h=svcHead('repeat','Ingresos programados')+'<div class="msub" style="margin:-5px 2px 12px">Dinero que esperas cada mes; cuenta cuando confirmes que te pagaron</div>';
+  if(!list.length){h+=svcAddCard("openSchedForm()","Programar un ingreso","Ej: tu <b>sueldo</b> el día 18, una <b>renta</b> que cobras…");return h;}
+  h+='<div class="panel" style="padding:4px 14px;margin-bottom:8px">';
+  list.forEach(s=>{const got=schedGotThisMonth(s);
+    h+='<div class="row-item" onclick="openSchedForm(\''+s.id+'\')"><div class="ci" style="background:rgba(54,211,153,.13);color:#36d399">'+ic('repeat',20)+'</div><div class="ti"><div class="a">'+(s.name||icatById(s.category).name)+'</div><div class="b">Cada día '+(s.day||'–')+' · '+(got?'<span style="color:#36d399;font-weight:600">Recibido este mes ✓</span>':'<span style="color:var(--warn)">Aún no te pagan</span>')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:10px"><div class="amt tnum" style="color:'+(got?'var(--mut)':'#36d399')+'">$'+fmt(s.amount||0)+'</div>'+(got?'<button class="svc-check on" type="button" onclick="event.stopPropagation()">'+ic('check',16)+'</button>':'<button class="btn ghost" type="button" style="width:auto;padding:7px 11px;font-size:12px;box-shadow:none" onclick="event.stopPropagation();receiveSched(\''+s.id+'\')">Ya lo recibí</button>')+'</div></div>';});
+  h+='</div><button class="btn ghost" onclick="openSchedForm()">'+ic('plus')+'Programar un ingreso</button>';
   return h;
 }
 let pickSchedICat='sueldo';
@@ -1384,7 +1392,7 @@ function renderSvc(){
   let html='';
   // ===== PAGOS FIJOS =====
   const totM=DB.services.reduce((s,x)=>s+(x.amount||0),0);
-  html+='<div class="sect" style="margin:2px 0 12px"><h2 style="display:flex;align-items:center;gap:9px;font-size:17px">'+ic('receipt',19)+'Pagos fijos</h2>'+(DB.services.length?'<span class="tnum" style="color:var(--mut);font-size:13px">$'+fmt(totM)+' /mes</span>':'')+'</div>';
+  html+=svcHead('receipt','Pagos fijos',(DB.services.length?'<span class="tnum" style="color:var(--mut);font-size:13px">$'+fmt(totM)+' /mes</span>':''),'4px');
   if(DB.services.length){
     SVCS.forEach(sec=>{
       const items=DB.services.filter(s=>s.section===sec.id).sort((a,b)=>(a.day||32)-(b.day||32));
@@ -1394,20 +1402,20 @@ function renderSvc(){
         html+='<div class="row-item" onclick="editSvc(\''+s.id+'\')"><div class="ci">'+ic(sec.i,20)+'</div><div class="ti"><div class="a">'+s.name+'</div><div class="b">'+(paid?'<span style="color:#36d399;font-weight:600">Pagado este mes ✓</span>':'Día '+(s.day||'–')+' de cada mes')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div>'+(s.amount?'<div class="amt tnum">$'+fmt(s.amount)+'</div>':'')+(!paid&&w?'<div class="when '+w.c+'" style="margin-top:4px;display:inline-block">'+w.t+'</div>':'')+'</div><button class="svc-check'+(paid?' on':'')+'" onclick="event.stopPropagation();paySvc(\''+s.id+'\')">'+ic('check',16)+'</button></div></div>';});
       html+='</div>';
     });
-  }else html+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:18px 16px">Luz, agua, internet, tenencia…<br>Agrégalos con el día que tocan y te aviso antes.</div>';
-  html+='<button class="btn" style="margin-top:4px" onclick="addSvc()">'+ic('plus')+'Agregar servicio</button>';
+    html+='<button class="btn" style="margin-top:2px" onclick="addSvc()">'+ic('plus')+'Agregar servicio</button>';
+  }else html+=svcAddCard("addSvc()","Agregar tu primer servicio","Luz, agua, internet, tenencia… con el día que tocan y te aviso antes.");
   // ===== INGRESOS PROGRAMADOS =====
   html+=schedSectionHTML();
   // ===== PERSONALES =====
   const act=debts.filter(d=>!d.settled),oweT=act.filter(d=>d.dir==='owe').reduce((s,d)=>s+(d.amount||0),0),owedT=act.filter(d=>d.dir==='owed').reduce((s,d)=>s+(d.amount||0),0);
-  html+='<div class="sect" style="margin:30px 0 4px"><h2 style="display:flex;align-items:center;gap:9px;font-size:17px">'+ic('users',18)+'Personales</h2></div><div class="msub" style="margin:0 2px 12px">Dinero informal entre personas (préstamos, deudas)</div>';
+  html+=svcHead('users','Personales')+'<div class="msub" style="margin:-5px 2px 12px">Dinero informal entre personas (préstamos, deudas)</div>';
   if(oweT||owedT)html+='<div class="panel" style="display:flex;gap:14px;margin-bottom:12px"><div style="flex:1"><div class="label" style="margin:0 0 5px">Yo debo</div><div class="tnum" style="font-size:19px;font-weight:800;color:var(--danger)">$'+fmt(oweT)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin:0 0 5px">Me deben</div><div class="tnum" style="font-size:19px;font-weight:800;color:#36d399">$'+fmt(owedT)+'</div></div></div>';
-  if(!debts.length)html+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:18px 16px">Ej: <b>"le debo $500 a Adrián"</b><br>o <b>"Juan me debe $1,000"</b>.</div>';
-  else{html+='<div class="panel" style="padding:4px 14px;margin-bottom:4px">';
+  if(!debts.length){html+=svcAddCard("openDebtForm()","Anotar dinero personal","Ej: <b>«le debo $500 a Adrián»</b> o <b>«Juan me debe $1,000»</b>.");}
+  else{html+='<div class="panel" style="padding:4px 14px;margin-bottom:8px">';
     debts.slice().sort((a,b)=>(a.settled?1:0)-(b.settled?1:0)).forEach(d=>{const owe=d.dir==='owe',col=owe?'var(--danger)':'#36d399',sub=d.settled?'Saldado ✓':(d.note||(d.date?new Date(d.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'}):'')||'Pendiente');
       html+='<div class="row-item" onclick="openDebtForm(\''+d.id+'\')"><div class="ci" style="background:'+(owe?'var(--danger-s)':'rgba(54,211,153,.15)')+';color:'+col+'">'+ic(owe?'up':'down',20)+'</div><div class="ti"><div class="a"'+(d.settled?' style="text-decoration:line-through;opacity:.55"':'')+'>'+(owe?'Le debo a ':'Me debe ')+(d.who||'alguien')+'</div><div class="b">'+sub+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div class="amt tnum" style="color:'+(d.settled?'var(--mut)':col)+'">$'+fmt2(d.amount)+'</div><button class="svc-check'+(d.settled?' on':'')+'" onclick="event.stopPropagation();toggleDebt(\''+d.id+'\')">'+ic('check',16)+'</button></div></div>';});
-    html+='</div>';}
-  html+='<button class="btn ghost" style="margin-top:8px" onclick="openDebtForm()">'+ic('plus')+'Anotar dinero personal</button>';
+    html+='</div>';
+    html+='<button class="btn ghost" style="margin-top:2px" onclick="openDebtForm()">'+ic('plus')+'Anotar dinero personal</button>';}
   box.innerHTML=html;
 }
 
