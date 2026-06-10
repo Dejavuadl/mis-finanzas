@@ -699,6 +699,7 @@ const P = {
   contactless:'<path d="M5 9a8 8 0 0 1 0 6"/><path d="M9 7a13 13 0 0 1 0 10"/><path d="M13 5a18 18 0 0 1 0 14"/>',
   x:'<path d="M18 6 6 18M6 6l12 12"/>',
   move:'<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
+  trendup:'<path d="M3 17l6-6 4 4 7-7"/><path d="M17 7h4v4"/>',
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
   pie:'<path d="M12 3v9l6.5 6.5A9 9 0 1 1 12 3z"/><path d="M16 3.5A9 9 0 0 1 20.5 8H12z"/>',
 };
@@ -1011,6 +1012,8 @@ function renderCardDetail(id){
   if(c.charge){h+='<div class="panel" style="margin-bottom:14px;display:flex;align-items:center;gap:12px"><div class="ci" style="width:40px;height:40px;border-radius:12px;background:var(--accent-s);color:var(--gold2);display:flex;align-items:center;justify-content:center">'+ic('card',20)+'</div><div><div style="font-weight:650;font-size:14px">Tarjeta de cargo</div><div style="font-size:12.5px;color:var(--mut)">Sin límite de crédito preestablecido</div></div></div>';}
   else if((c.limit||0)>0){const usado=Math.max(0,c.debt||0),disp=Math.max(0,c.limit-usado),pu=Math.min(100,Math.round(usado/c.limit*100));
     h+='<div class="panel" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="label" style="margin:0">Línea de crédito</div><div class="tnum" style="font-size:12.5px;color:var(--mut)">'+pu+'% usado</div></div><div class="prog" style="margin:12px 0 10px;height:10px;background:var(--surface3)"><i style="width:'+pu+'%;background:linear-gradient(90deg,'+(pu>80?'var(--danger),#ff8a80':'var(--gold-d),var(--gold2)')+')"></i></div><div style="display:flex;justify-content:space-between"><div><div style="font-size:10.5px;color:var(--mut)">USADO</div><div class="tnum" style="font-weight:700;font-size:15px;color:var(--danger)">$'+fmt(usado)+'</div></div><div style="text-align:center"><div style="font-size:10.5px;color:var(--mut)">DISPONIBLE</div><div class="tnum" style="font-weight:700;font-size:15px;color:#36d399">$'+fmt(disp)+'</div></div><div style="text-align:right"><div style="font-size:10.5px;color:var(--mut)">LÍMITE</div><div class="tnum" style="font-weight:700;font-size:15px">$'+fmt(c.limit)+'</div></div></div></div>';}
+  if(!c.charge)h+='<button class="btn ghost" style="margin-bottom:14px" onclick="openLineUp(\''+id+'\')">'+ic('trendup',18)+'Me aumentaron la línea</button>';
+  if(c.limitHist&&c.limitHist.length){h+='<div class="label">Aumentos de línea</div><div class="panel" style="margin-bottom:16px">'+c.limitHist.slice().reverse().slice(0,8).map(p=>'<div class="row-item" style="cursor:default"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('trendup',20)+'</div><div class="ti"><div class="a tnum">$'+fmt(p.prev)+' → $'+fmt(p.next)+'</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+'</div></div><div class="amt tnum" style="color:#36d399">+$'+fmt(p.next-p.prev)+'</div></div>').join('')+'</div>';}
   h+='<button class="btn" style="margin-bottom:16px" onclick="payCard(\''+id+'\')">'+ic('coins',18)+'Pagar tarjeta</button>';
   if(c.payHist&&c.payHist.length){h+='<div class="label">Pagos realizados</div><div class="panel" style="margin-bottom:16px">'+c.payHist.slice().reverse().slice(0,10).map(p=>'<div class="row-item" style="cursor:default"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('check',20)+'</div><div class="ti"><div class="a">Pago a la tarjeta</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+'</div></div><div class="amt tnum" style="color:#36d399">−$'+fmt2(p.amt)+'</div></div>').join('')+'</div>';}
   h+='<div class="label">Este mes · toca para anotar</div>';
@@ -1059,6 +1062,21 @@ function setCardField(id,field){const c=DB.cards.find(x=>x.id===id),lbl={debt:'D
   setTimeout(()=>{try{$('#cf-in').focus();}catch(e){}},250);
 }
 function saveCardField(id,field){const c=DB.cards.find(x=>x.id===id);c[field]=num($('#cf-in').value);save();closeModal();toast('Guardado');renderCardDetail(id);renderAll();}
+function openLineUp(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;
+  const today=new Date().toISOString().slice(0,10);
+  openModal('<h3>Aumento de línea</h3><div class="msub">'+c.name+' · línea actual <b class="tnum">$'+fmt(c.limit||0)+'</b></div>'+
+   '<div class="field"><label>¿A cuánto subió tu línea?</label><input id="lu-amt" inputmode="decimal" placeholder="Ej: '+fmt((c.limit||0)+10000)+'" value="'+(c.limit||'')+'"></div>'+
+   '<div class="field"><label>¿Cuándo te la aumentaron?</label><input id="lu-date" type="date" value="'+today+'"></div>'+
+   '<div class="panel" id="lu-calc" style="margin-bottom:14px;display:none"></div>'+
+   '<button class="btn" onclick="saveLineUp(\''+id+'\')">'+ic('check')+'Registrar aumento</button>');
+  const calc=()=>{const nv=num($('#lu-amt').value),prev=c.limit||0,diff=nv-prev,box=$('#lu-calc');if(nv>0&&diff!==0){box.style.display='block';box.innerHTML='<div style="display:flex;justify-content:space-between"><span style="color:var(--mut);font-size:13px">'+(diff>0?'Te aumentaron':'Cambio')+'</span><b class="tnum" style="color:'+(diff>0?'#36d399':'var(--danger)')+'">'+(diff>0?'+':'−')+'$'+fmt2(Math.abs(diff))+'</b></div><div style="display:flex;justify-content:space-between;margin-top:7px"><span style="color:var(--mut);font-size:13px">Nueva línea</span><b class="tnum">$'+fmt2(nv)+'</b></div>';}else box.style.display='none';};
+  $('#lu-amt').addEventListener('input',calc);calc();
+}
+function saveLineUp(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;const nv=num($('#lu-amt').value);if(!nv){toast('Escribe la nueva línea');return;}
+  const dstr=$('#lu-date').value,date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString(),prev=c.limit||0;
+  c.limit=nv;c.limitHist=c.limitHist||[];c.limitHist.push({date,prev,next:nv});save();closeModal();
+  toast(nv>prev?'¡Línea aumentada! 🎉':'Línea actualizada');renderCardDetail(id);renderAll();
+}
 function payCard(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;
   const opt=(lbl,val)=>val>0?'<button class="btn ghost" type="button" style="box-shadow:none;justify-content:space-between" onclick="$(\'#pay-in\').value=\''+val+'\'">'+lbl+' <b class="tnum">$'+fmt(val)+'</b></button>':'';
   openModal('<h3>Pagar '+c.name+'</h3><div class="msub">Registra tu pago como si lo hicieras desde el banco</div><div class="field"><label>¿Cuánto vas a pagar?</label><input id="pay-in" inputmode="decimal" placeholder="0"></div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">'+opt('Pago total (deuda)',c.debt||0)+opt('Pago sin intereses',c.payNoInt||0)+opt('Pago mínimo',c.payMin||0)+'</div><button class="btn" onclick="doPayCard(\''+id+'\')">'+ic('check')+'Registrar pago</button>');
