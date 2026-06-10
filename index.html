@@ -25,6 +25,7 @@
   --head:rgba(8,8,10,.7);
   --icobg:var(--surface2);
   --icofg:var(--gold2);
+  --accnum:var(--gold2);
   --herobg:linear-gradient(155deg,#1c1810 0%,#131114 52%,#0b0a0c 100%);
   --line:rgba(var(--accrgb),.15);
   --line2:rgba(var(--accrgb),.32);
@@ -65,6 +66,7 @@ html.light{
   --herobg:linear-gradient(155deg,#ffffff 0%,#f7f3ec 55%,#efe9dd 100%);
   --icobg:rgba(var(--accrgb),.15);
   --icofg:var(--gold-d);
+  --accnum:var(--gold);
 }
 html.light #bgfx b{mix-blend-mode:multiply;opacity:.4;}
 html.light #bgfx:after{mix-blend-mode:multiply;}
@@ -507,7 +509,7 @@ body{
 .set-head{display:flex;align-items:center;gap:12px;padding:calc(18px + var(--st)) 20px 12px;position:sticky;top:0;background:var(--head);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);z-index:2;}
 .set-back{background:var(--surface2);border:1px solid var(--line);color:var(--txt);width:40px;height:40px;border-radius:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .set-head h2{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;}
-.set-prof{display:flex;flex-direction:column;align-items:center;padding:8px 20px 6px;}
+.set-prof{display:flex;flex-direction:column;align-items:center;padding:26px 20px 8px;}
 .set-prof .pa{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--gold2),var(--gold-d));display:flex;align-items:center;justify-content:center;color:var(--on-primary);font-size:36px;font-weight:700;font-family:'Outfit',sans-serif;box-shadow:0 10px 26px rgba(var(--accrgb),.35);border:2px solid rgba(var(--acc2rgb),.5);margin-bottom:13px;}
 .set-prof .pn{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;}
 .set-prof .ps{color:var(--mut);font-size:13px;margin-top:3px;}
@@ -1054,7 +1056,7 @@ function renderHome(){
     qc('exp','swap',(bal<0?'-$':'+$')+fmt(Math.abs(bal)),'Balance del mes',bal<0?'var(--danger)':'#36d399')+
     qc('cards','card','$'+fmt(totDebt),'Deuda en tarjetas',totDebt>0?'var(--danger)':'var(--txt)')+
     qc('svc','receipt','$'+fmt(svcMonthly),'Servicios al mes')+
-    qc('save','wallet','$'+fmt(patr),'Ahorros + inversión','var(--gold2)');
+    qc('save','wallet','$'+fmt(patr),'Ahorros + inversión','var(--accnum)');
   const lk=DB.settings.premium?'':' '+premBadge();
   const prow=(icon,title,sub,fn)=>'<div onclick="'+fn+'" style="display:flex;align-items:center;gap:13px;background:var(--panel);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:11px;cursor:pointer"><div style="width:42px;height:42px;border-radius:12px;background:var(--icobg);color:var(--icofg);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ic(icon,20)+'</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:7px">'+title+lk+'</div><div style="font-size:12.5px;color:var(--mut);margin-top:2px">'+sub+'</div></div>'+ic('chevR',18)+'</div>';
   $('#home-health').innerHTML='<div class="sect"><h2>Premium</h2></div>'+prow('target','Salud financiera','Tu puntaje y probabilidad de aumento','openHealth()')+prow('pie','Reportes','En qué se va tu dinero, por categoría','openReports()')+prow('receipt','Presupuestos','Pon límites y evita pasarte','openBudgets()');
