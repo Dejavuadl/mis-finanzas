@@ -1179,7 +1179,7 @@ function renderCardDetail(id){
   if(!c.charge)h+='<button class="btn ghost" style="margin-bottom:14px" onclick="openLineUp(\''+id+'\')">'+ic('trendup',18)+'Me aumentaron la línea</button>';
   if(c.limitHist&&c.limitHist.length){h+='<div class="label">Aumentos de línea</div><div class="panel" style="margin-bottom:16px">'+c.limitHist.slice().reverse().slice(0,8).map(p=>'<div class="row-item" style="cursor:default"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('trendup',20)+'</div><div class="ti"><div class="a tnum">$'+fmt(p.prev)+' → $'+fmt(p.next)+'</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+'</div></div><div class="amt tnum" style="color:#36d399">+$'+fmt(p.next-p.prev)+'</div></div>').join('')+'</div>';}
   h+='<button class="btn" style="margin-bottom:16px" onclick="payCard(\''+id+'\')">'+ic('coins',18)+'Pagar tarjeta</button>';
-  if(c.payHist&&c.payHist.length){h+='<div class="label">Pagos realizados</div><div class="panel" style="margin-bottom:16px">'+c.payHist.slice().reverse().slice(0,10).map(p=>'<div class="row-item" style="cursor:default"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('check',20)+'</div><div class="ti"><div class="a">Pago a la tarjeta</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+'</div></div><div class="amt tnum" style="color:#36d399">−$'+fmt2(p.amt)+'</div></div>').join('')+'</div>';}
+  if(c.payHist&&c.payHist.length){c.payHist.forEach(p=>{if(!p.id)p.id=uid();});h+='<div class="label">Pagos realizados</div><div class="panel" style="margin-bottom:16px">'+c.payHist.slice().reverse().slice(0,12).map(p=>'<div class="row-item" style="cursor:default"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('check',20)+'</div><div class="ti"><div class="a">Pago a la tarjeta</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+' · '+(p.srcName?p.srcName:'efectivo')+'</div></div><div style="display:flex;align-items:center;gap:9px;flex-shrink:0"><div class="amt tnum" style="color:#36d399">−$'+fmt2(p.amt)+'</div><button class="undo-pill" onclick="confirmUndoCardPay(\''+id+'\',\''+p.id+'\')">'+ic('back',13)+'Deshacer</button></div></div>').join('')+'</div>';}
   h+='<div class="label">Este mes · toca para anotar</div>';
   h+='<div class="detgrid">'+detTile('Deuda total',c.debt||0,'debt',id,'var(--danger)',true)+detTile('Pago sin intereses',c.payNoInt||0,'payNoInt',id,'var(--gold2)')+detTile('Pago mínimo',c.payMin||0,'payMin',id,'var(--txt)')+'</div>';
   const msiItems=DB.expenses.filter(e=>e.cardId===id&&e.months>1).sort((a,b)=>new Date(b.date)-new Date(a.date)||b.createdAt-a.createdAt),msiRem=cardMsiRemaining(id);
@@ -1241,16 +1241,36 @@ function saveLineUp(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;const n
   c.limit=nv;c.limitHist=c.limitHist||[];c.limitHist.push({date,prev,next:nv});save();closeModal();
   toast(nv>prev?'¡Línea aumentada! 🎉':'Línea actualizada');renderCardDetail(id);renderAll();
 }
+let pickPaySrc='';
 function payCard(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;
   const due=(c.debt||0)+(c.payMin||0)+(c.payNoInt||0)+cardMsiMonthly(id);
   if(due<=0){openModal('<div style="text-align:center;padding:8px 0 2px"><div style="width:62px;height:62px;border-radius:19px;background:rgba(54,211,153,.15);color:#36d399;display:flex;align-items:center;justify-content:center;margin:0 auto 15px">'+ic('check',32)+'</div><h3 style="text-align:center">¡Nada que pagar!</h3><div class="msub" style="text-align:center">Esta tarjeta está en <b>$0</b> — no tienes saldo por pagar. 🎉<br>Si sí debes algo, anótalo primero en "Deuda total".</div></div><button class="btn" style="margin-top:6px" onclick="closeModal()">Entendido</button>');return;}
+  pickPaySrc='';
   const opt=(lbl,val)=>val>0?'<button class="btn ghost" type="button" style="box-shadow:none;justify-content:space-between" onclick="$(\'#pay-in\').value=\''+val+'\'">'+lbl+' <b class="tnum">$'+fmt(val)+'</b></button>':'';
-  openModal('<h3>Pagar '+c.name+'</h3><div class="msub">Registra tu pago como si lo hicieras desde el banco</div><div class="field"><label>¿Cuánto vas a pagar?</label><input id="pay-in" inputmode="decimal" placeholder="0"></div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">'+opt('Pago total (deuda)',c.debt||0)+opt('Pago sin intereses',c.payNoInt||0)+opt('Pago mínimo',c.payMin||0)+'</div><button class="btn" onclick="doPayCard(\''+id+'\')">'+ic('check')+'Registrar pago</button>');
+  const debs=DB.cards.filter(isDebit);
+  let src='<div class="label" style="margin:2px 2px 9px">¿Con qué pagas?</div><div class="picker" id="pay-src" style="grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px"><div class="pick on" data-src="">'+ic('banknote',20)+'Efectivo / otro</div>';
+  debs.forEach(d=>{src+='<div class="pick" data-src="'+d.id+'">'+ic('card',20)+d.name+'<span style="font-size:10px;color:var(--mut);font-weight:600">$'+fmt(d.balance||0)+'</span></div>';});
+  src+='</div>';
+  openModal('<h3>Pagar '+c.name+'</h3><div class="msub">Registra tu pago como si lo hicieras desde el banco</div><div class="field"><label>¿Cuánto vas a pagar?</label><input id="pay-in" inputmode="decimal" placeholder="0"></div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">'+opt('Pago total (deuda)',c.debt||0)+opt('Pago sin intereses',c.payNoInt||0)+opt('Pago mínimo',c.payMin||0)+'</div>'+src+'<button class="btn" onclick="doPayCard(\''+id+'\')">'+ic('check')+'Registrar pago</button>');
+  const ps=$('#pay-src');if(ps)ps.querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickPaySrc=el.dataset.src;ps.querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
   setTimeout(()=>{try{$('#pay-in').focus();}catch(e){}},250);
 }
 function doPayCard(id){const c=DB.cards.find(x=>x.id===id),amt=num($('#pay-in').value);if(!amt){toast('Escribe el monto');return;}
-  c.debt=Math.max(0,(c.debt||0)-amt);c.payHist=c.payHist||[];c.payHist.push({amt,date:new Date().toISOString()});
-  save();closeModal();toast('Pago de $'+fmt(amt)+' registrado ✓');renderAll();if(detailShown())renderCardDetail(id);
+  const deb=pickPaySrc?DB.cards.find(x=>x.id===pickPaySrc&&isDebit(x)):null;
+  if(deb&&amt>(deb.balance||0)){toast(deb.name+' solo tiene $'+fmt(deb.balance||0));return;}
+  c.debt=Math.max(0,(c.debt||0)-amt);
+  const payId=uid();c.payHist=c.payHist||[];c.payHist.push({id:payId,amt,date:new Date().toISOString(),src:deb?deb.id:null,srcName:deb?deb.name:null});
+  if(deb){deb.balance=Math.max(0,(deb.balance||0)-amt);deb.history=deb.history||[];deb.history.push({t:'out',amt:amt,date:new Date().toISOString(),ref:payId});}
+  save();closeModal();toast(deb?('Pago de $'+fmt(amt)+' con '+deb.name+' ✓'):('Pago de $'+fmt(amt)+' registrado ✓'));renderAll();if(detailShown())renderCardDetail(id);
+}
+function confirmUndoCardPay(cardId,payId){const c=DB.cards.find(x=>x.id===cardId);if(!c)return;const p=(c.payHist||[]).find(x=>x.id===payId);if(!p)return;
+  openModal('<div style="text-align:center;padding:4px 0 2px"><div style="width:60px;height:60px;border-radius:18px;background:var(--danger-s);color:var(--danger);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">'+ic('back',28)+'</div></div><h3 style="text-align:center">¿Deshacer este pago?</h3><div class="msub" style="text-align:center;margin-bottom:20px"><b>$'+fmt2(p.amt)+'</b> vuelve a tu deuda de '+c.name+(p.srcName?' y regresa a '+p.srcName:'')+'.</div><button class="btn" style="background:var(--danger);box-shadow:none" onclick="undoCardPay(\''+cardId+'\',\''+payId+'\')">'+ic('back',17)+'Sí, deshacer pago</button><div class="del" style="color:var(--mut)" onclick="closeModal()">Cancelar</div>');
+}
+function undoCardPay(cardId,payId){const c=DB.cards.find(x=>x.id===cardId);if(!c)return;const p=(c.payHist||[]).find(x=>x.id===payId);if(!p)return;
+  c.debt=(c.debt||0)+p.amt;
+  if(p.src){const deb=DB.cards.find(x=>x.id===p.src);if(deb){deb.balance=(deb.balance||0)+p.amt;deb.history=(deb.history||[]).filter(h=>h.ref!==payId);}}
+  c.payHist=c.payHist.filter(x=>x.id!==payId);
+  save();closeModal();toast('Pago deshecho');renderAll();if(detailShown())renderCardDetail(cardId);
 }
 /* ===== Página genérica (Salud / Reportes / Presupuestos) ===== */
 function openPage(title,body){$('#page').innerHTML='<div class="set-head"><button class="set-back" onclick="closePage()">'+ic('chevL',20)+'</button><h2>'+title+'</h2></div><div class="det-body">'+body+'</div>';showOverlay('page');}
