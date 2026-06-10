@@ -49,14 +49,15 @@ body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg);
   color:var(--txt);
-  overflow-x:hidden;
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  overflow:hidden;
   -webkit-font-smoothing:antialiased;
   letter-spacing:-.01em;
 }
 .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
 .dsp{font-family:'Outfit',sans-serif;letter-spacing:-.02em;font-weight:700;}
 .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.28em;color:var(--gold);font-weight:600;}
-#app{max-width:480px;margin:0 auto;min-height:100%;position:relative;padding:calc(8px + var(--st)) 0 calc(120px + var(--sb));}
+#app{max-width:480px;margin:0 auto;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;position:relative;padding:calc(8px + var(--st)) 0 calc(120px + var(--sb));}
 #navscrim{position:fixed;left:0;right:0;bottom:0;height:calc(98px + var(--sb));z-index:49;pointer-events:none;background:linear-gradient(to top,var(--bg) 0%,var(--bg) 58%,transparent);}
 .screen{display:none;padding:0 18px;}
 .screen.active{display:block;animation:scrn .4s cubic-bezier(.16,1,.3,1);}
@@ -324,6 +325,9 @@ body{
 .field label{display:block;font-size:12px;color:var(--mut);font-weight:600;margin-bottom:8px;}
 .field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1.5px solid var(--line);border-radius:14px;padding:14px;color:var(--txt);font-size:16px;font-family:inherit;font-weight:500;outline:none;transition:border-color .2s,box-shadow .2s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(var(--accrgb),.14);}
+.field input[type="date"]{text-align:left;-webkit-appearance:none;appearance:none;min-height:52px;}
+.field input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0;}
+.field input[type="date"]::-webkit-calendar-picker-indicator{margin-left:auto;opacity:.6;filter:invert(.7);}
 .field textarea{resize:none;min-height:74px;}
 .field .two{display:flex;gap:11px;}
 .field .two>div{flex:1;}
@@ -551,6 +555,7 @@ body{
   <!-- TARJETAS -->
   <section class="screen" id="s-cards">
     <div class="top"><div><h1 class="dsp">Tarjetas</h1><div class="sub">Tus fechas de corte y pago</div></div></div>
+    <div class="segs" id="cards-segs"></div>
     <div id="cards-list"></div>
     <button class="btn" id="add-card-btn"></button>
   </section>
@@ -618,10 +623,10 @@ body{
     <div id="cal-detail"></div>
     <button class="btn ghost" id="cal-ics" style="box-shadow:none;margin-top:6px" onclick="exportICS()"></button>
   </section>
-
-  <div id="navscrim"></div>
-  <nav class="nav" id="nav"></nav>
 </div>
+
+<div id="navscrim"></div>
+<nav class="nav" id="nav"></nav>
 
 <!-- SPLASH -->
 <div class="overlay" id="splash">
@@ -1003,15 +1008,22 @@ function renderHome(){
     const b=bankById(a.card.bank),cut=a.type==='cut';return '<div class="alert card rise" onclick="openCard(\''+a.card.id+'\')" style="cursor:pointer;animation-delay:'+(i*55)+'ms"><div class="ico" style="background:'+cgrad(a.card)+'">'+ic(cut?'scissors':'coins',21)+'</div><div class="meta"><div class="ttl">'+a.card.name+'</div><div class="dsc">'+(cut?'Corte · se genera tu estado de cuenta':'Pago · fecha límite')+'</div></div><div class="when '+w.c+'">'+w.t+'</div></div>';}).join('');
 }
 
+let cardsTab='credito';
+function setCardsTab(t){cardsTab=t;renderCards();}
+function addCardTyped(t){if(!DB.settings.premium&&DB.cards.length>=3){toast('Plan gratis: hasta 3 tarjetas');openPremium();return;}openCardForm(null,t);}
 function renderCards(){
-  $('#add-card-btn').innerHTML=ic('plus')+'Agregar tarjeta';
-  const box=$('#cards-list');
-  if(!DB.cards.length){box.innerHTML='<div class="empty"><div class="e">'+ic('card',30)+'</div><p>Aún no tienes tarjetas.<br>Agrega la primera para empezar.</p></div>';return;}
-  const totDebt=DB.cards.reduce((s,c)=>s+(c.debt||0),0),totMsi=DB.cards.reduce((s,c)=>s+cardMsiMonthly(c.id),0);
+  const box=$('#cards-list'),segs=$('#cards-segs');
+  segs.innerHTML='<div class="seg '+(cardsTab==='credito'?'on':'')+'" onclick="setCardsTab(\'credito\')">Crédito</div><div class="seg '+(cardsTab==='debito'?'on':'')+'" onclick="setCardsTab(\'debito\')">Débito</div>';
+  $('#add-card-btn').innerHTML=ic('plus')+(cardsTab==='debito'?'Agregar tarjeta de débito':'Agregar tarjeta de crédito');
+  $('#add-card-btn').onclick=()=>addCardTyped(cardsTab);
+  const list=DB.cards.filter(c=>cardsTab==='debito'?isDebit(c):!isDebit(c));
+  if(!list.length){box.innerHTML='<div class="empty"><div class="e">'+ic('card',30)+'</div><p>'+(cardsTab==='debito'?'Aún no tienes tarjetas de débito.<br>Agrega una y lleva tu saldo aquí y en Cartera.':'Aún no tienes tarjetas de crédito.<br>Agrega la primera para empezar.')+'</p></div>';return;}
   let head='';
-  if(totDebt>0||totMsi>0)head='<div class="panel" style="display:flex;gap:14px"><div style="flex:1"><div class="label" style="margin-bottom:7px">Debes en total</div><div class="tnum" style="font-size:23px;font-weight:800">$'+fmt(totDebt)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin-bottom:7px">Pago a meses</div><div class="tnum" style="font-size:23px;font-weight:800;color:var(--gold2)">$'+fmt(totMsi)+'<span style="font-size:12px;color:var(--mut);font-weight:500"> /mes</span></div></div></div>';
-  box.innerHTML=head+DB.cards.map((c,i)=>{
-    const controls=(DB.cards.length>1?'<div class="cc-reorder"><button type="button" onclick="moveCard(event,\''+c.id+'\',-1)" '+(i===0?'disabled':'')+'>'+ic('chevU',17)+'</button><span class="sep"></span><button type="button" onclick="moveCard(event,\''+c.id+'\',1)" '+(i===DB.cards.length-1?'disabled':'')+'>'+ic('chevD',17)+'</button></div>':'')+'<button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button>';
+  if(cardsTab==='credito'){const totDebt=list.reduce((s,c)=>s+(c.debt||0),0),totMsi=list.reduce((s,c)=>s+cardMsiMonthly(c.id),0);
+    if(totDebt>0||totMsi>0)head='<div class="panel" style="display:flex;gap:14px"><div style="flex:1"><div class="label" style="margin-bottom:7px">Debes en total</div><div class="tnum" style="font-size:23px;font-weight:800">$'+fmt(totDebt)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin-bottom:7px">Pago a meses</div><div class="tnum" style="font-size:23px;font-weight:800;color:var(--gold2)">$'+fmt(totMsi)+'<span style="font-size:12px;color:var(--mut);font-weight:500"> /mes</span></div></div></div>';
+  }else{const totBal=list.reduce((s,c)=>s+(c.balance||0),0);head='<div class="panel"><div class="label" style="margin-bottom:7px">Saldo total en débito</div><div class="tnum" style="font-size:23px;font-weight:800">$'+fmt(totBal)+'</div></div>';}
+  box.innerHTML=head+list.map((c,i)=>{
+    const controls=(list.length>1?'<div class="cc-reorder"><button type="button" onclick="moveCard(event,\''+c.id+'\',-1)" '+(i===0?'disabled':'')+'>'+ic('chevU',17)+'</button><span class="sep"></span><button type="button" onclick="moveCard(event,\''+c.id+'\',1)" '+(i===list.length-1?'disabled':'')+'>'+ic('chevD',17)+'</button></div>':'')+'<button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button>';
     const brand=(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'');
     if(isDebit(c)){
       return '<div class="cc rise" data-id="'+c.id+'" onclick="openDebitDetail(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms">'+controls+'<div class="crow"><div class="bank">'+c.name+brand+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">$'+fmt(c.balance||0)+'</div><div class="l">'+ic('wallet',11)+'Saldo</div></div><div class="d" style="margin-left:auto;text-align:right"><div class="v" style="font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.85)">DÉBITO</div></div></div></div></div>';
@@ -1027,8 +1039,10 @@ function renderCards(){
 /* ===== Reordenar tarjetas (botones ▲▼) ===== */
 function moveCard(ev,id,dir){
   if(ev){ev.stopPropagation();ev.preventDefault();}
-  const i=DB.cards.findIndex(c=>c.id===id),j=i+dir;
-  if(i<0||j<0||j>=DB.cards.length)return;
+  const i=DB.cards.findIndex(c=>c.id===id);if(i<0)return;
+  const isD=isDebit(DB.cards[i]);let j=i+dir;
+  while(j>=0&&j<DB.cards.length&&isDebit(DB.cards[j])!==isD)j+=dir;
+  if(j<0||j>=DB.cards.length)return;
   const box=$('#cards-list');
   const first={};box.querySelectorAll('.cc').forEach(el=>{first[el.dataset.id]=el.getBoundingClientRect().top;});
   const a=DB.cards,t=a[i];a[i]=a[j];a[j]=t;save();
@@ -1461,7 +1475,7 @@ function openCaptureAttach(ctx,hostId,fixedCard){
 const NAVITEMS=[['home','Inicio','home'],['exp','Balance','swap'],['cards','Tarjetas','card'],['svc','Servicios','receipt'],['save','Cartera','wallet'],['cal','Agenda','cal']];
 $('#nav').innerHTML='<div id="nav-pill"></div>'+NAVITEMS.map((n,i)=>'<button class="'+(i===0?'on':'')+'" data-go="'+n[0]+'">'+ic(n[2])+n[1]+'</button>').join('');
 function moveNavPill(){const b=$('.nav button.on'),pill=$('#nav-pill');if(b&&pill){pill.style.width=b.offsetWidth+'px';pill.style.left=b.offsetLeft+'px';}}
-function go(name){$$('.screen').forEach(s=>s.classList.remove('active'));$('#s-'+name).classList.add('active');$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name));moveNavPill();window.scrollTo(0,0);renderAll();}
+function go(name){$$('.screen').forEach(s=>s.classList.remove('active'));$('#s-'+name).classList.add('active');$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name));moveNavPill();const a=$('#app');if(a)a.scrollTop=0;renderAll();}
 $$('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.go));
 window.addEventListener('resize',moveNavPill);
 
@@ -1570,7 +1584,7 @@ function cardModalRender(){
    '<div class="field"><label>¿Cuánto debes en total? (opcional)</label><input id="c-debt" inputmode="decimal" placeholder="0" value="'+d.debt+'"></div>';
   const debFields='<div class="field"><label>Saldo (lo que tienes guardado)</label><input id="c-balance" inputmode="decimal" placeholder="0" value="'+d.balance+'"></div>';
   openModal('<div style="display:flex;align-items:center;gap:11px;margin-bottom:14px"><button class="set-back" type="button" onclick="cardBackToBank()">'+ic('chevL',20)+'</button><div><div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.06em">Banco</div><div style="font-family:\'Outfit\',sans-serif;font-size:18px;font-weight:700">'+b.name+'</div></div></div>'+
-   '<div class="segs" style="margin-bottom:15px"><div class="seg'+(!deb?' on':'')+'" onclick="setCardType(\'credito\')">💳 Crédito</div><div class="seg'+(deb?' on':'')+'" onclick="setCardType(\'debito\')">🏧 Débito</div></div>'+
+   '<div class="segs" style="margin-bottom:15px"><div class="seg'+(!deb?' on':'')+'" onclick="setCardType(\'credito\')">Crédito</div><div class="seg'+(deb?' on':'')+'" onclick="setCardType(\'debito\')">Débito</div></div>'+
    '<div class="field" id="prodfield"></div>'+
    '<div class="field"><label>Nombre (como quieras llamarla)</label><input id="c-name" placeholder="'+(deb?'Ej: BBVA Débito':'Ej: BBVA Oro')+'" value="'+d.name+'" oninput="cardNameAuto=false"></div>'+
    '<div class="field"><label>Últimos 4 dígitos (opcional)</label><input id="c-last4" inputmode="numeric" maxlength="4" placeholder="1234" value="'+d.last4+'"></div>'+
