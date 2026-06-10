@@ -1545,11 +1545,12 @@ function renderSettings(){
   h+='<div class="set-row"><div class="si">'+ic('lock')+'</div><div class="stt"><div class="a">Pedir PIN al abrir</div><div class="b">'+(s.lockOnOpen===false?'Sesión siempre abierta':'Te pedirá desbloquear al entrar')+'</div></div>'+swHTML(s.lockOnOpen!==false&&!!s.pin,'toggleLock()')+'</div>';
   h+='</div></div>';
   h+='<div class="set-sec"><div class="label">Notificaciones</div><div class="set-card">';
+  h+='<div class="set-row"><div class="si">'+ic('bell')+'</div><div class="stt"><div class="a">Avisos en el celular (push)</div><div class="b">'+(s.pushOn?'Activados · llegan aunque esté cerrada':'Recíbelos aunque la app esté cerrada')+'</div></div>'+swHTML(!!s.pushOn,'togglePush()')+'</div>';
   h+='<div class="set-row"><div class="si">'+ic('scissors')+'</div><div class="stt"><div class="a">Cortes de tarjeta</div><div class="b">Aviso antes de tu fecha de corte</div></div>'+swHTML(s.notif.cortes!==false,"toggleNotif('cortes')")+'</div>';
   h+='<div class="set-row"><div class="si">'+ic('coins')+'</div><div class="stt"><div class="a">Pagos de tarjeta</div><div class="b">Aviso antes de tu fecha límite</div></div>'+swHTML(s.notif.pagos!==false,"toggleNotif('pagos')")+'</div>';
   h+='<div class="set-row"><div class="si">'+ic('receipt')+'</div><div class="stt"><div class="a">Servicios</div><div class="b">Luz, agua, tenencia…</div></div>'+swHTML(s.notif.servicios!==false,"toggleNotif('servicios')")+'</div>';
   h+='<div class="set-row"><div class="si">'+ic('bell')+'</div><div class="stt"><div class="a">Días de anticipación</div><div class="b">Con cuántos días avisarte</div></div><select onchange="setNotifDias(this.value)">'+[1,2,3,5,7].map(d=>'<option value="'+d+'" '+(s.notif.dias===d?'selected':'')+'>'+d+' día'+(d>1?'s':'')+'</option>').join('')+'</select></div>';
-  h+='</div><div class="hint" style="margin:9px 4px 0">Las push reales (con la app cerrada) se activan al publicar la app en internet. Por ahora ves los avisos al abrirla.</div></div>';
+  h+='</div><div class="hint" style="margin:9px 4px 0">En iPhone, agrega la app a tu pantalla de inicio para recibir las notificaciones push.</div></div>';
   h+='<div class="set-sec"><div class="label">Datos</div><div class="set-card">';
   h+='<div class="set-row tap" onclick="exportData()"><div class="si">'+ic('down')+'</div><div class="stt"><div class="a">Descargar respaldo</div><div class="b">Guarda un archivo con toda tu info</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
   h+='<div class="set-row tap" onclick="confirmWipe()"><div class="si danger">'+ic('trash')+'</div><div class="stt"><div class="a" style="color:var(--danger)">Borrar todos los datos</div><div class="b">Empieza de cero</div></div></div>';
@@ -1562,8 +1563,8 @@ function editName(){
   setTimeout(()=>{try{$('#nm-in').focus();}catch(e){}},250);
 }
 function saveName(){DB.settings.name=$('#nm-in').value.trim();save();closeModal();toast('Nombre guardado');renderSettings();renderAll();}
-function toggleNotif(k){DB.settings.notif=DB.settings.notif||{};DB.settings.notif[k]=DB.settings.notif[k]===false?true:false;save();renderSettings();renderAll();}
-function setNotifDias(v){DB.settings.notif=DB.settings.notif||{};DB.settings.notif.dias=parseInt(v);save();renderAll();}
+function toggleNotif(k){DB.settings.notif=DB.settings.notif||{};DB.settings.notif[k]=DB.settings.notif[k]===false?true:false;save();renderSettings();renderAll();syncPush();}
+function setNotifDias(v){DB.settings.notif=DB.settings.notif||{};DB.settings.notif.dias=parseInt(v);save();renderAll();syncPush();}
 async function toggleFace(){if(DB.settings.faceCred){DB.settings.faceCred=null;save();toast('Face ID desactivado');renderSettings();return;}if(!(await bioAvailable())){toast('Face ID necesita la app hosteada (HTTPS)');return;}const ok=await registerFaceID();toast(ok?'Face ID activado ✓':'No se pudo activar');renderSettings();}
 function setTheme(id){if(!DB.settings.premium){openPremium();return;}DB.settings.theme=id;save();applyTheme(id);renderSettings();toast('Tema aplicado ✓');}
 function setBg(id){if(!DB.settings.premium){openPremium();return;}DB.settings.bgStyle=id;save();applyBg(id);renderSettings();toast('Fondo aplicado ✓');}
@@ -1638,6 +1639,30 @@ function showGuide(){
 }
 function maybeGuide(){if(!DB.settings.guideSeen){DB.settings.guideSeen=true;save();setTimeout(showGuide,550);}}
 
+/* ============== NOTIFICACIONES PUSH ============== */
+const PUSH_API='https://finanzas-server-dejavuadls-projects.vercel.app';
+const VAPID_PUB='BH-tf4GsE4uflYfQqX6_nQl_wPPPn2pHmQrq9PlBZi830Kk3wKkq27FGmJ6F0KAxrHJ5fM-5uFlADdcAEKisXow';
+function u8(b64){const pad='='.repeat((4-b64.length%4)%4),s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(s),a=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)a[i]=raw.charCodeAt(i);return a;}
+function pushReminders(){
+  const nf=DB.settings.notif||{},out=[],today=new Date();today.setHours(0,0,0,0);
+  const ymd=d=>d.toISOString().slice(0,10);
+  const occ=day=>{const arr=[];for(let k=0;k<3;k++){const dd=new Date(today.getFullYear(),today.getMonth()+k,1),dim=new Date(dd.getFullYear(),dd.getMonth()+1,0).getDate(),dt=new Date(dd.getFullYear(),dd.getMonth(),Math.min(day,dim));dt.setHours(0,0,0,0);if(dt>=today)arr.push(ymd(dt));}return arr;};
+  DB.cards.forEach(c=>{if(c.cutDay&&nf.cortes!==false)occ(c.cutDay).forEach(d=>out.push({date:d,title:'Corte de '+c.name,body:'se genera tu estado de cuenta'}));if(c.payDay&&nf.pagos!==false)occ(c.payDay).forEach(d=>out.push({date:d,title:'Pago de '+c.name,body:'fecha límite de pago'}));});
+  DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,title:s.name,body:'pago de servicio'+(s.amount?' · $'+fmt(s.amount):'')}));});
+  return out;
+}
+async function getSub(){const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID_PUB)});return sub;}
+async function postSchedule(sub){try{await fetch(PUSH_API+'/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:sub,reminders:pushReminders()})});}catch(e){}}
+async function enablePush(){
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)||!window.isSecureContext){toast('Disponible al instalar la app (HTTPS)');return false;}
+  let perm;try{perm=await Notification.requestPermission();}catch(e){perm='denied';}
+  if(perm!=='granted'){toast('Permiso de notificaciones no concedido');return false;}
+  try{const sub=await getSub();await postSchedule(sub);DB.settings.pushOn=true;save();toast('Notificaciones activadas 🔔');return true;}catch(e){toast('No se pudo activar (¿app instalada?)');return false;}
+}
+async function disablePush(){DB.settings.pushOn=false;save();try{const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe();}catch(e){}toast('Notificaciones desactivadas');}
+async function syncPush(){if(!DB.settings.pushOn||!('serviceWorker'in navigator)||(window.Notification&&Notification.permission!=='granted'))return;try{const sub=await getSub();await postSchedule(sub);}catch(e){}}
+function togglePush(){if(DB.settings.pushOn)disablePush().then(renderSettings);else enablePush().then(renderSettings);}
+
 function boot(){
   applyTheme(DB.settings.theme||'oro');
   buildKeypad();
@@ -1650,6 +1675,7 @@ function boot(){
     else if(DB.settings.pin&&DB.settings.lockOnOpen!==false)showLock();
     else{renderAll();moveNavPill();maybeGuide();}
   },2100);
+  setTimeout(syncPush,3500);
 }
 boot();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));}
