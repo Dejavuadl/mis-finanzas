@@ -426,6 +426,8 @@ body{
 
 /* ===== Fondo animado (estilo Revolut) ===== */
 #bgfx{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:-1;overflow:hidden;pointer-events:none;}
+#rotate{display:none;}
+@media (orientation:landscape) and (max-height:600px){#rotate{display:flex;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;}}
 #bgfx b{position:absolute;will-change:transform;display:block;mix-blend-mode:screen;}
 /* Aurora (default) — manchas grandes que recorren toda la pantalla */
 #bgfx.aurora b{border-radius:50%;filter:blur(58px);}
@@ -631,6 +633,7 @@ body{
 </div>
 
 <nav class="nav" id="nav"></nav>
+<div id="rotate"><div style="font-size:52px;margin-bottom:14px">📱</div><div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:20px">Gira tu teléfono</div><div style="color:var(--mut);font-size:14px;margin-top:6px;max-width:260px">Mis Finanzas está diseñada en vertical</div></div>
 
 <!-- SPLASH -->
 <div class="overlay" id="splash">
