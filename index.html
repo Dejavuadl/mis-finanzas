@@ -814,6 +814,22 @@ function uid(){return Math.random().toString(36).slice(2,10);}
 const fmt=n=>Number(n).toLocaleString('es-MX',{maximumFractionDigits:0});
 const fmt2=n=>Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
 const num=v=>parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''))||0; // acepta "5,000", "$1,200.50", etc.
+function fmtMoneyInput(el){
+  const sel=el.selectionStart==null?el.value.length:el.selectionStart;
+  const before=el.value.slice(0,sel).replace(/[^\d.]/g,'').length;
+  let v=el.value.replace(/[^\d.]/g,'');
+  const fd=v.indexOf('.');
+  if(fd>=0)v=v.slice(0,fd+1)+v.slice(fd+1).replace(/\./g,'');
+  const parts=v.split('.'),intp=parts[0].replace(/^0+(?=\d)/,''),dec=parts[1];
+  let out=intp.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  if(dec!==undefined)out=(out||'0')+'.'+dec.slice(0,2);
+  if(out===el.value)return;
+  el.value=out;
+  let p=0,c=0;while(p<out.length&&c<before){if(/[\d.]/.test(out[p]))c++;p++;}
+  try{el.setSelectionRange(p,p);}catch(e){}
+}
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.matches&&t.matches('input[inputmode="decimal"]'))fmtMoneyInput(t);});
+document.addEventListener('focusin',e=>{const t=e.target;if(t&&t.matches&&t.matches('input[inputmode="decimal"]')&&t.value)fmtMoneyInput(t);});
 function capDay(el){let v=parseInt(el.value);if(isNaN(v)){el.value='';return;}if(v>31)el.value=31;else if(v<1)el.value=1;}
 const clampDay=v=>{const n=parseInt(v);return n?Math.min(31,Math.max(1,n)):null;};
 const avatarFill=()=>DB.settings.photo?'<img src="'+DB.settings.photo+'" alt="">':(DB.settings.name||'A').trim().charAt(0).toUpperCase();
@@ -1354,7 +1370,7 @@ function removeTicketInc(id){const e=DB.incomes.find(x=>x.id===id);if(e){e.ticke
 
 /* ============== MODALES ============== */
 const modalBg=$('#modal-bg'),modalEl=$('#modal');
-function openModal(h){modalEl.innerHTML='<div class="modal-top"><span class="grab"></span><button class="modal-x" type="button" onclick="closeModal()">'+ic('x',18)+'</button></div>'+h;modalBg.classList.add('show');modalEl.scrollTop=0;}
+function openModal(h){modalEl.innerHTML='<div class="modal-top"><span class="grab"></span><button class="modal-x" type="button" onclick="closeModal()">'+ic('x',18)+'</button></div>'+h;modalBg.classList.add('show');modalEl.scrollTop=0;modalEl.querySelectorAll('input[inputmode="decimal"]').forEach(el=>{if(el.value)fmtMoneyInput(el);});}
 function closeModal(){modalBg.classList.remove('show');}
 modalBg.onclick=e=>{if(e.target===modalBg)closeModal();};
 
