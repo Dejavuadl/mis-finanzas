@@ -209,11 +209,14 @@ body{
 .cc .dates .d .l svg{width:11px;height:11px;}
 .cc .edit{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.28);border:1px solid rgba(var(--acc2rgb),.3);color:var(--gold2);width:32px;height:32px;border-radius:10px;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
 .cc .edit svg{width:16px;height:16px;}
-.cc .cc-grip{position:absolute;top:16px;right:56px;background:rgba(0,0,0,.28);border:1px solid rgba(var(--acc2rgb),.3);color:var(--gold2);width:32px;height:32px;border-radius:10px;cursor:grab;z-index:3;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);touch-action:none;}
-.cc .cc-grip svg{width:18px;height:18px;}
-.cc.dragging{z-index:20;box-shadow:0 26px 55px -8px rgba(0,0,0,.9);transition:none!important;}
-#cards-list.reordering .cc:not(.dragging){transition:transform .25s cubic-bezier(.2,.85,.3,1);}
-#cards-list.reordering .cc:not(.dragging){opacity:.96;}
+.cc .cc-reorder{position:absolute;top:15px;right:56px;display:flex;align-items:stretch;background:rgba(0,0,0,.32);border:1px solid rgba(var(--acc2rgb),.32);border-radius:11px;overflow:hidden;z-index:3;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
+.cc .cc-reorder button{background:none;border:none;color:var(--gold2);width:31px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background .15s;}
+.cc .cc-reorder button:active{background:rgba(var(--accrgb),.3);}
+.cc .cc-reorder button:disabled{opacity:.28;cursor:default;}
+.cc .cc-reorder .sep{width:1px;background:rgba(255,255,255,.12);}
+.cc .cc-reorder svg{width:17px;height:17px;}
+@keyframes cardpop{0%{transform:scale(1)}45%{transform:scale(1.03)}100%{transform:scale(1)}}
+.cc.moved{animation:cardpop .3s ease;}
 .cc .msiline{position:relative;margin-top:12px;padding-top:10px;border-top:1px solid rgba(var(--acc2rgb),.2);font-size:11.5px;font-weight:600;color:rgba(var(--acc2rgb),.96);display:flex;align-items:center;gap:6px;}
 .cc .msiline svg{width:13px;height:13px;}
 .cc .ccbar{height:6px;border-radius:999px;background:rgba(255,255,255,.25);overflow:hidden;margin-top:11px;position:relative;}
@@ -658,6 +661,8 @@ const P = {
   check:'<path d="M20 6 9 17l-5-5"/>',
   chevL:'<path d="m15 18-6-6 6-6"/>',
   chevR:'<path d="m9 18 6-6-6-6"/>',
+  chevU:'<path d="m18 15-6-6-6 6"/>',
+  chevD:'<path d="m6 9 6 6 6-6"/>',
   scissors:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/>',
   coins:'<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/>',
   trend:'<path d="M22 7 13.5 15.5l-5-5L2 17"/><path d="M16 7h6v6"/>',
@@ -958,42 +963,19 @@ function renderCards(){
       rightCol='<div class="d" style="margin-left:auto;text-align:right"><div class="v tnum">$'+fmt(disp)+'</div><div class="l" style="justify-content:flex-end">Disponible</div></div>';
       bar='<div class="ccbar"><i style="width:'+pu+'%;background:'+(pu>85?'#ff8a80':'#fff')+'"></i></div><div class="cclbl"><span>Usado $'+fmt(usado)+'</span><span>Límite $'+fmt(c.limit)+'</span></div>';}
     else if((c.debt||0)>0)rightCol='<div class="d" style="margin-left:auto;text-align:right"><div class="v tnum">$'+fmt(c.debt)+'</div><div class="l" style="justify-content:flex-end">Debes</div></div>';
-    return '<div class="cc rise" data-id="'+c.id+'" onclick="openCard(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms"><button class="cc-grip" onpointerdown="startCardDrag(event,\''+c.id+'\')" onclick="event.stopPropagation()">'+ic('move',18)+'</button><button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button><div class="crow"><div class="bank">'+c.name+(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'')+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">'+(c.cutDay||'–')+'</div><div class="l">'+ic('scissors',11)+'Corte</div></div><div class="d"><div class="v tnum">'+(c.payDay||'–')+'</div><div class="l">'+ic('coins',11)+'Pago</div></div>'+rightCol+'</div>'+bar+(msi>0?'<div class="msiline">'+ic('suscrip',13)+'$'+fmt(msi)+' / mes a meses</div>':'')+'</div></div>';}).join('');
+    return '<div class="cc rise" data-id="'+c.id+'" onclick="openCard(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms">'+(DB.cards.length>1?'<div class="cc-reorder"><button type="button" onclick="moveCard(event,\''+c.id+'\',-1)" '+(i===0?'disabled':'')+'>'+ic('chevU',17)+'</button><span class="sep"></span><button type="button" onclick="moveCard(event,\''+c.id+'\',1)" '+(i===DB.cards.length-1?'disabled':'')+'>'+ic('chevD',17)+'</button></div>':'')+'<button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button><div class="crow"><div class="bank">'+c.name+(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'')+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">'+(c.cutDay||'–')+'</div><div class="l">'+ic('scissors',11)+'Corte</div></div><div class="d"><div class="v tnum">'+(c.payDay||'–')+'</div><div class="l">'+ic('coins',11)+'Pago</div></div>'+rightCol+'</div>'+bar+(msi>0?'<div class="msiline">'+ic('suscrip',13)+'$'+fmt(msi)+' / mes a meses</div>':'')+'</div></div>';}).join('');
 }
 
-/* ===== Reordenar tarjetas (arrastrar) ===== */
-let dragEl=null,dragStartY=0,dragGrip=null;
-function startCardDrag(ev,id){
-  ev.preventDefault();ev.stopPropagation();
-  const el=document.querySelector('.cc[data-id="'+id+'"]');if(!el)return;
-  dragEl=el;dragGrip=ev.currentTarget;dragStartY=ev.clientY;
-  try{dragGrip.setPointerCapture(ev.pointerId);}catch(e){}
-  el.classList.add('dragging');$('#cards-list').classList.add('reordering');
-  try{navigator.vibrate&&navigator.vibrate(12);}catch(e){}
-  dragGrip.addEventListener('pointermove',onCardMove);
-  dragGrip.addEventListener('pointerup',endCardDrag);
-  dragGrip.addEventListener('pointercancel',endCardDrag);
-}
-function onCardMove(ev){
-  if(!dragEl)return;ev.preventDefault();
-  dragEl.style.transform='translateY('+(ev.clientY-dragStartY)+'px) scale(1.04)';
-  const box=$('#cards-list'),mid=dragEl.getBoundingClientRect().top+dragEl.offsetHeight/2;
-  let ref=null;
-  for(const c of box.querySelectorAll('.cc:not(.dragging)')){const r=c.getBoundingClientRect();if(mid<r.top+r.height/2){ref=c;break;}}
-  if(ref){if(dragEl.nextElementSibling!==ref){box.insertBefore(dragEl,ref);dragStartY=ev.clientY;dragEl.style.transform='scale(1.04)';}}
-  else if(box.lastElementChild!==dragEl){box.appendChild(dragEl);dragStartY=ev.clientY;dragEl.style.transform='scale(1.04)';}
-}
-function endCardDrag(){
-  if(!dragEl)return;
-  dragGrip.removeEventListener('pointermove',onCardMove);
-  dragGrip.removeEventListener('pointerup',endCardDrag);
-  dragGrip.removeEventListener('pointercancel',endCardDrag);
-  const ids=[...$('#cards-list').querySelectorAll('.cc')].map(c=>c.dataset.id);
-  DB.cards.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));save();
-  dragEl.classList.remove('dragging');dragEl.style.transform='';
-  $('#cards-list').classList.remove('reordering');dragEl=null;dragGrip=null;
-  try{navigator.vibrate&&navigator.vibrate(8);}catch(e){}
-  renderAll();
+/* ===== Reordenar tarjetas (botones ▲▼) ===== */
+function moveCard(ev,id,dir){
+  if(ev){ev.stopPropagation();ev.preventDefault();}
+  const i=DB.cards.findIndex(c=>c.id===id),j=i+dir;
+  if(i<0||j<0||j>=DB.cards.length)return;
+  const a=DB.cards,t=a[i];a[i]=a[j];a[j]=t;save();
+  try{navigator.vibrate&&navigator.vibrate(10);}catch(e){}
+  renderCards();
+  const el=document.querySelector('.cc[data-id="'+id+'"]');
+  if(el){el.classList.add('moved');el.scrollIntoView({block:'nearest',behavior:'smooth'});}
 }
 
 /* ===== Detalle de tarjeta (control total) ===== */
