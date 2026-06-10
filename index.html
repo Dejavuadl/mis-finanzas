@@ -128,6 +128,20 @@ body{
 .capn .cap-ticket{background:var(--surface3);border:1px solid var(--line);width:42px;height:42px;border-radius:12px;color:var(--gold2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .capn .cap-ticket.on{background:var(--accent-s);border-color:var(--gold);}
 .capn .cap-ticket svg{width:20px;height:20px;}
+.capn .cap-ai{background:var(--surface3);border:1px solid rgba(var(--acc2rgb),.35);width:42px;height:42px;border-radius:12px;color:var(--gold2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.capn .cap-ai:active{transform:scale(.9);background:var(--accent-s);}
+.capn .cap-ai svg{width:19px;height:19px;}
+#ai-load{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;}
+.ai-load-box{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:30px 26px;text-align:center;max-width:300px;margin:0 24px;box-shadow:0 24px 60px -10px rgba(0,0,0,.8);}
+.ai-spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--surface3);border-top-color:var(--gold2);margin:0 auto 16px;animation:aispin .8s linear infinite;}
+@keyframes aispin{to{transform:rotate(360deg)}}
+.ai-load-t{font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;}
+.ai-load-s{color:var(--mut);font-size:13px;margin-top:5px;}
+.ai-load-sec{color:var(--gold2);font-size:11.5px;margin-top:14px;background:var(--accent-s);padding:7px 11px;border-radius:10px;}
+.ai-opt{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:9px;cursor:pointer;}
+.ai-opt input{width:20px;height:20px;flex-shrink:0;accent-color:var(--gold2);}
+.ai-opt .a{font-weight:600;font-size:14px;}
+.ai-opt .b{font-size:12px;color:var(--mut);margin-top:2px;}
 .capn .cap-go{background:linear-gradient(135deg,var(--gold2),var(--gold));border:none;width:44px;height:44px;border-radius:13px;color:var(--on-primary);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(var(--accrgb),.4);transition:transform .14s;}
 .capn .cap-go:active{transform:scale(.9);}
 .cap-note{width:100%;background:var(--surface2);border:1.5px solid var(--line);border-radius:13px;padding:11px 14px;color:var(--txt);font-size:15px;font-family:inherit;outline:none;margin-top:9px;}
@@ -648,6 +662,7 @@ body{
 <div class="toast" id="toast"></div>
 <input type="file" id="photo-input" accept="image/*" style="display:none">
 <input type="file" id="ticket-input" accept="image/*" style="display:none">
+<input type="file" id="ai-input" accept="image/*,application/pdf" style="display:none">
 
 <script>
 /* ============== ICONOS SVG (Lucide) ============== */
@@ -1175,7 +1190,9 @@ function openHealth(){
   openPage('Salud financiera','<div class="msub" style="margin-bottom:6px">Se calcula con tus movimientos · se actualiza cada semana</div><div style="text-align:center;margin:8px 0 16px"><div class="tnum" style="font-size:58px;font-weight:800;color:'+lvl[1]+';line-height:1">'+h.score+'</div><div style="font-weight:700;color:'+lvl[1]+';font-size:15px;margin-top:2px">'+lvl[0]+'</div>'+trendHTML+'</div><div class="prog" style="height:10px;margin-bottom:18px"><i style="width:'+h.score+'%;background:'+lvl[1]+'"></i></div>'+probHTML+'<div class="panel" style="margin-bottom:14px">'+h.fac.map(f=>'<div style="display:flex;align-items:center;gap:11px;padding:10px 0"><div style="width:34px;height:34px;border-radius:10px;flex-shrink:0;background:'+(f[0]==='ok'?'rgba(54,211,153,.15)':'var(--danger-s)')+';color:'+(f[0]==='ok'?'#36d399':'var(--danger)')+';display:flex;align-items:center;justify-content:center">'+ic(f[0]==='ok'?'check':'down',17)+'</div><div style="font-size:14px;font-weight:550">'+f[1]+'</div></div>').join('')+'</div><div class="label" style="margin:0 2px 8px">Recomendaciones</div><div class="panel">'+tips.map(t=>'<div style="display:flex;gap:9px;padding:7px 0;font-size:13.5px;line-height:1.4"><span style="color:var(--gold2);font-weight:800">•</span><span>'+t+'</span></div>').join('')+'</div>');
 }
 function uploadStatement(){
-  openModal('<div style="text-align:center;padding:6px 0 4px"><div style="width:64px;height:64px;border-radius:20px;background:var(--accent-s);color:var(--gold2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">'+ic('spark',32)+'</div></div><h3 style="text-align:center">Leer estado de cuenta con IA</h3><div class="msub" style="text-align:center;margin-bottom:18px">Subes el PDF o la foto de tu estado de cuenta y la app detecta sola <b>todos tus movimientos</b>, cuánto debes y tus compras a meses — sin capturar nada a mano.</div><div class="hint" style="margin-bottom:18px">Función <b>Premium</b>. Usa IA (Claude) para leer tu estado de cuenta; se activa al publicar la app. Mientras tanto, captura tus movimientos con la barra de abajo.</div><button class="btn" onclick="closeModal();openPremium()">'+ic('crown',18)+'Ver Premium</button><div class="del" style="color:var(--mut)" onclick="closeModal()">Ahora no</div>');
+  if(!DB.settings.premium){openPremium();return;}
+  const cid=curCard;
+  openModal('<div style="text-align:center;padding:6px 0 4px"><div style="width:64px;height:64px;border-radius:20px;background:var(--accent-s);color:var(--gold2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">'+ic('spark',32)+'</div></div><h3 style="text-align:center">Leer estado de cuenta con IA</h3><div class="msub" style="text-align:center;margin-bottom:16px">Sube el <b>PDF o foto</b> de tu estado de cuenta y la IA detecta sola tu <b>deuda, pagos y movimientos</b> (incluyendo compras a meses).</div><div class="hint" style="margin-bottom:18px;text-align:center">🔒 <b>100% seguro:</b> tu documento se procesa de forma segura solo para leerlo y <b>no se guarda</b> en ningún lado.</div><button class="btn" onclick="closeModal();aiScan(\'statement\',d=>showStatementReview(\''+cid+'\',d))">'+ic('spark',18)+'Subir PDF o foto</button><div class="del" style="color:var(--mut)" onclick="closeModal()">Ahora no</div>');
 }
 
 let balFilter='todos';
@@ -1321,6 +1338,65 @@ function showDay(d){
 }
 function renderAll(){renderHome();renderCards();renderBalance();renderCart();renderSvc();renderCal();}
 
+/* ============== IA (estados de cuenta, tickets, comprobantes) ============== */
+let aiKind=null,aiCb=null;
+function aiScan(kind,cb){if(!DB.settings.premium){openPremium();return;}aiKind=kind;aiCb=cb;const inp=$('#ai-input');inp.value='';inp.click();}
+function fileToMedia(file,isPdf,cb){const r=new FileReader();
+  if(isPdf){r.onload=ev=>cb({type:'pdf',data:String(ev.target.result).split(',')[1]});r.readAsDataURL(file);return;}
+  r.onload=ev=>{const img=new Image();img.onload=()=>{const m=1600,sc=Math.min(1,m/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);cb({type:'image',mime:'image/jpeg',data:c.toDataURL('image/jpeg',0.82).split(',')[1]});};img.onerror=()=>{hideAiLoading();toast('Imagen no válida');};img.src=ev.target.result;};r.readAsDataURL(file);}
+$('#ai-input').addEventListener('change',function(e){const f=e.target.files&&e.target.files[0];if(!f)return;
+  const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+  if(f.size>9*1024*1024){toast('Archivo muy grande (máx 9 MB)');return;}
+  showAiLoading();
+  fileToMedia(f,isPdf,media=>{
+    fetch(PUSH_API+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:aiKind,media,cats:CATS.map(c=>c.id)})})
+      .then(r=>r.json()).then(j=>{hideAiLoading();
+        if(j&&j.ok&&j.data){if(aiCb)aiCb(j.data);}
+        else if(j&&j.error==='sin_api_key')toast('La IA aún no está configurada');
+        else toast('No pude leerlo, prueba con una foto más clara');
+      }).catch(()=>{hideAiLoading();toast('Error de conexión');});
+  });
+});
+function showAiLoading(){let el=$('#ai-load');if(!el){el=document.createElement('div');el.id='ai-load';el.innerHTML='<div class="ai-load-box"><div class="ai-spin"></div><div class="ai-load-t">Leyendo con IA…</div><div class="ai-load-s">Puede tardar unos segundos</div><div class="ai-load-sec">🔒 100% seguro · tu documento no se guarda</div></div>';document.body.appendChild(el);}el.style.display='flex';}
+function hideAiLoading(){const el=$('#ai-load');if(el)el.style.display='none';}
+const aiDay=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||'');return m?parseInt(m[3]):0;};
+const aiIso=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||'');return m?new Date(s.slice(0,10)+'T12:00:00').toISOString():new Date().toISOString();};
+function showStatementReview(cardId,d){
+  const movs=Array.isArray(d.movimientos)?d.movimientos.filter(m=>m&&m.monto):[];
+  const cont=movs.filter(m=>!(m.meses>1)),msi=movs.filter(m=>m.meses>1);
+  let h='<h3>Estado de cuenta leído</h3><div class="msub">Revisa lo que detecté y elige qué aplicar</div>';
+  h+='<div class="panel" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--mut);font-size:13px">Deuda total</span><b class="tnum">$'+fmt2(d.deuda_total||0)+'</b></div><div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--mut);font-size:13px">Pago sin intereses</span><b class="tnum">$'+fmt2(d.pago_no_intereses||0)+'</b></div><div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--mut);font-size:13px">Pago mínimo</span><b class="tnum">$'+fmt2(d.pago_minimo||0)+'</b></div><div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--mut);font-size:13px">Corte / Pago</span><b class="tnum">'+(aiDay(d.fecha_corte)||'–')+' / '+(aiDay(d.fecha_pago)||'–')+'</b></div></div>';
+  const chk=(id,lbl,sub,on)=>'<label class="ai-opt"><input type="checkbox" id="'+id+'" '+(on?'checked':'')+'><div><div class="a">'+lbl+'</div><div class="b">'+sub+'</div></div></label>';
+  h+=chk('st-saldos','Actualizar deuda y pagos','Deuda, pago mínimo y sin intereses',(d.deuda_total||d.pago_minimo||d.pago_no_intereses)>0);
+  h+=chk('st-fechas','Actualizar fechas','Corte y pago de la tarjeta',!!(aiDay(d.fecha_corte)||aiDay(d.fecha_pago)));
+  h+=chk('st-movs','Agregar '+movs.length+' movimientos',cont.length+' de contado · '+msi.length+' a meses',movs.length>0);
+  if(movs.length){h+='<div class="label" style="margin-top:6px">Movimientos detectados</div><div class="panel" style="max-height:230px;overflow:auto;padding:4px 14px">';
+    movs.slice(0,60).forEach(m=>{h+='<div class="row-item" style="cursor:default"><div class="ti"><div class="a">'+((m.descripcion||'Movimiento')+'')+'</div><div class="b">'+(m.meses>1?m.meses+' meses · $'+fmt2(m.mensualidad>0?m.mensualidad:(m.monto/m.meses))+'/mes':'Contado')+'</div></div><div class="amt tnum">$'+fmt2(m.meses>1&&m.mensualidad>0?m.mensualidad*m.meses:m.monto)+'</div></div>';});
+    h+='</div>';}
+  h+='<button class="btn" style="margin-top:14px" onclick="applyStatement(\''+cardId+'\')">'+ic('check')+'Aplicar a la tarjeta</button><div class="del" onclick="closeModal()">Cancelar</div>';
+  aiStmt=d;openModal(h);
+}
+let aiStmt=null;
+function applyStatement(cardId){const c=DB.cards.find(x=>x.id===cardId),d=aiStmt;if(!c||!d){closeModal();return;}
+  if($('#st-saldos')&&$('#st-saldos').checked){if(d.deuda_total>0)c.debt=d.deuda_total;if(d.pago_minimo>0)c.payMin=d.pago_minimo;if(d.pago_no_intereses>0)c.payNoInt=d.pago_no_intereses;}
+  if($('#st-fechas')&&$('#st-fechas').checked){const cd=aiDay(d.fecha_corte),pd=aiDay(d.fecha_pago);if(cd)c.cutDay=cd;if(pd)c.payDay=pd;}
+  if($('#st-movs')&&$('#st-movs').checked){(d.movimientos||[]).forEach(m=>{if(!m||!m.monto)return;const meses=m.meses>1?m.meses:1,total=meses>1?(m.mensualidad>0?m.mensualidad*meses:m.monto):m.monto;if(!total)return;DB.expenses.push({id:uid(),amount:total,cardId:cardId,category:'otros',note:m.descripcion||'',months:meses,monthsPaid:0,ticket:null,date:aiIso(m.fecha),createdAt:Date.now()});});}
+  save();aiStmt=null;closeModal();toast('Estado de cuenta aplicado ✓');renderCardDetail(cardId);renderAll();
+}
+function aiCapture(ctx,hostId,fixedCard){if(!DB.settings.premium){openPremium();return;}
+  const income=(ctx==='balance'&&capState[ctx].mode==='income');
+  aiScan(income?'transfer':'ticket',d=>{const st=capState[ctx];
+    if(!income&&d.categoria){const cat=CATS.find(c=>c.id===d.categoria);if(cat)st.cat=cat.id;}
+    mountCapture(hostId,ctx,fixedCard);
+    const host=$('#'+hostId);if(!host)return;
+    const amt=host.querySelector('.cap-amt'),note=host.querySelector('.cap-note'),dt=host.querySelector('.cap-date');
+    if(amt&&d.monto){amt.value=String(d.monto);fmtMoneyInput(amt);}
+    if(note)note.value=income?(d.nota||d.origen||''):(d.nota||d.comercio||'');
+    if(dt&&/^\d{4}-\d{2}-\d{2}$/.test(d.fecha||''))dt.value=d.fecha;
+    toast('IA llenó los datos ✓');
+  });
+}
+
 /* ============== NAV ============== */
 const NAVITEMS=[['home','Inicio','home'],['exp','Balance','swap'],['cards','Tarjetas','card'],['svc','Servicios','receipt'],['save','Cartera','wallet'],['cal','Agenda','cal']];
 $('#nav').innerHTML='<div id="nav-pill"></div>'+NAVITEMS.map((n,i)=>'<button class="'+(i===0?'on':'')+'" data-go="'+n[0]+'">'+ic(n[2])+n[1]+'</button>').join('');
@@ -1335,7 +1411,7 @@ function captureHTML(ctx){
   const st=capState[ctx],isBal=ctx==='balance',income=isBal&&st.mode==='income';
   let h='';
   if(isBal)h+='<div class="captog"><div class="tgbtn'+(st.mode==='expense'?' on':'')+'" data-mode="expense">− Gasto</div><div class="tgbtn'+(st.mode==='income'?' on income':'')+'" data-mode="income">+ Ingreso</div></div>';
-  h+='<div class="capn"><span class="curr">$</span><input class="cap-amt" inputmode="decimal" placeholder="0" autocomplete="off"><button class="cap-ticket'+(st.tk?' on':'')+'" type="button">'+ic('camera',20)+'</button><button class="cap-go" type="button">'+ic('plus',22)+'</button></div>';
+  h+='<div class="capn"><span class="curr">$</span><input class="cap-amt" inputmode="decimal" placeholder="0" autocomplete="off"><button class="cap-ai" type="button" title="Leer con IA">'+ic('spark',19)+'</button><button class="cap-ticket'+(st.tk?' on':'')+'" type="button">'+ic('camera',20)+'</button><button class="cap-go" type="button">'+ic('plus',22)+'</button></div>';
   h+='<input class="cap-note" placeholder="Nota (opcional): dónde, con quién…" autocomplete="off">';
   h+='<label class="capdate">'+ic('cal',15)+'<span>Fecha</span><input type="date" class="cap-date" value="'+new Date().toISOString().slice(0,10)+'"></label>';
   h+='<div class="tkflag'+(st.tk?' show':'')+'">'+ic('camera',14)+(income?'Comprobante adjunto':'Ticket adjunto')+' · se guarda con el movimiento</div>';
@@ -1360,6 +1436,7 @@ function mountCapture(hostId,ctx,fixedCard){
   host.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{st.months=parseInt(el.dataset.m);setActiveSeg(host,'months',el);});
   host.querySelectorAll('[data-card]').forEach(el=>el.onclick=()=>{st.cardId=el.dataset.card||null;setActiveSeg(host,'card',el);});
   const tk=host.querySelector('.cap-ticket');if(tk)tk.onclick=()=>pickTicket(ctx,hostId,fixedCard);
+  const aib=host.querySelector('.cap-ai');if(aib)aib.onclick=()=>aiCapture(ctx,hostId,fixedCard);
   const dateEl=host.querySelector('.cap-date');
   const add=()=>capAdd(ctx,fixedCard,amt,note,dateEl);
   host.querySelector('.cap-go').onclick=add;
