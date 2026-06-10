@@ -1760,11 +1760,11 @@ function pushReminders(){
   const ymd=d=>d.toISOString().slice(0,10);
   const occ=day=>{const arr=[];for(let k=0;k<3;k++){const dd=new Date(today.getFullYear(),today.getMonth()+k,1),dim=new Date(dd.getFullYear(),dd.getMonth()+1,0).getDate(),dt=new Date(dd.getFullYear(),dd.getMonth(),Math.min(day,dim));dt.setHours(0,0,0,0);if(dt>=today)arr.push(ymd(dt));}return arr;};
   DB.cards.forEach(c=>{
-    if(c.cutDay&&nf.cortes!==false)occ(c.cutDay).forEach(d=>out.push({date:d,title:'✂️ Corte de '+c.name,body:'se genera tu estado de cuenta'}));
+    if(c.cutDay&&nf.cortes!==false)occ(c.cutDay).forEach(d=>out.push({date:d,type:'corte',name:c.name}));
     const debe=(c.debt||0)>0||(c.payMin||0)>0||(c.payNoInt||0)>0||cardMsiMonthly(c.id)>0;
-    if(c.payDay&&nf.pagos!==false&&debe)occ(c.payDay).forEach(d=>out.push({date:d,title:'💳 Pagar '+c.name,body:'fecha límite de pago'+((c.debt||0)>0?' · debes $'+fmt(c.debt):'')}));
+    if(c.payDay&&nf.pagos!==false&&debe)occ(c.payDay).forEach(d=>out.push({date:d,type:'pago',name:c.name,amount:(c.debt||c.payNoInt||c.payMin||0)}));
   });
-  DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,title:'🧾 '+s.name,body:'toca pagar tu servicio'+(s.amount?' · $'+fmt(s.amount):'')}));});
+  DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,type:'servicio',name:s.name,amount:(s.amount||0)}));});
   return out;
 }
 async function getSub(){const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID_PUB)});return sub;}
