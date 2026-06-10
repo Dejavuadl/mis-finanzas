@@ -19,6 +19,8 @@
   --surface:#121215;
   --surface2:#1a1a1e;
   --surface3:#232329;
+  --navbg:rgba(22,19,13,.82);
+  --carddim:rgba(255,255,255,.05);
   --line:rgba(var(--accrgb),.15);
   --line2:rgba(var(--accrgb),.32);
   --txt:#f4f1ea;
@@ -42,6 +44,17 @@
   --r-sm:14px;
   --sb:env(safe-area-inset-bottom,0px);
   --st:env(safe-area-inset-top,0px);
+}
+html.light{
+  --bg:#efece4;
+  --surface:#ffffff;
+  --surface2:#f4f1ea;
+  --surface3:#e7e2d6;
+  --txt:#1c1a14;
+  --mut:#6c6555;
+  --mut2:#9b9483;
+  --navbg:rgba(255,255,255,.86);
+  --carddim:rgba(0,0,0,.05);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html{height:100%;height:-webkit-fill-available;background:var(--bg);}
@@ -307,7 +320,7 @@ body{
 .cal-legend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
 
 /* Nav flotante (estilo Revolut) */
-.nav{position:relative;flex-shrink:0;margin:6px auto max(5px,calc(var(--sb) - 26px));width:calc(100% - 26px);max-width:454px;background:rgba(22,19,13,.82);-webkit-backdrop-filter:blur(26px) saturate(160%);backdrop-filter:blur(26px) saturate(160%);border:1px solid var(--line2);border-radius:25px;display:flex;padding:7px;z-index:50;box-shadow:0 14px 38px rgba(0,0,0,.6),inset 0 1px 0 rgba(var(--acc2rgb),.14);}
+.nav{position:relative;flex-shrink:0;margin:6px auto max(5px,calc(var(--sb) - 26px));width:calc(100% - 26px);max-width:454px;background:var(--navbg);-webkit-backdrop-filter:blur(26px) saturate(160%);backdrop-filter:blur(26px) saturate(160%);border:1px solid var(--line2);border-radius:25px;display:flex;padding:7px;z-index:50;box-shadow:0 14px 38px rgba(0,0,0,.6),inset 0 1px 0 rgba(var(--acc2rgb),.14);}
 #nav-pill{position:absolute;top:7px;bottom:7px;border-radius:18px;background:linear-gradient(135deg,rgba(var(--acc2rgb),.22),rgba(var(--accrgb),.14));border:1px solid rgba(var(--acc2rgb),.3);transition:left .42s cubic-bezier(.34,1.3,.5,1),width .42s cubic-bezier(.34,1.3,.5,1);z-index:0;pointer-events:none;}
 .nav button{flex:1;background:none;border:none;color:var(--mut2);font-family:inherit;font-size:8.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 1px;cursor:pointer;transition:color .25s;position:relative;z-index:1;letter-spacing:.01em;}
 .nav button svg{width:21px;height:21px;transition:transform .35s cubic-bezier(.34,1.5,.5,1);}
@@ -934,6 +947,8 @@ function applyBg(style){const prem=!!DB.settings.premium;if(!prem)style='solido'
   if(bl[2])bl[2].style.background='radial-gradient(circle,'+hexA(t.c3,.7)+',transparent 64%)';
  }
 }
+function applyMode(m){document.documentElement.classList.toggle('light',m==='light');}
+function setMode(m){DB.settings.mode=m;save();applyMode(m);renderSettings();toast(m==='light'?'Versión clara ☀️':'Versión oscura 🌙');}
 function applyTheme(id){if(!DB.settings.premium)id='oro';const t=THEMES.find(x=>x.id===id)||THEMES[0],r=document.documentElement.style;
  r.setProperty('--gold',t.c2);r.setProperty('--gold2',t.c3);r.setProperty('--gold-d',t.c1);
  r.setProperty('--primary',t.c2);r.setProperty('--accent',t.c2);
@@ -1876,7 +1891,7 @@ function renderSettings(){
   h+='<div class="set-row tap" onclick="editName()"><div class="si">'+ic('pencil')+'</div><div class="stt"><div class="a">Nombre</div><div class="b">'+(s.name||'Sin definir')+'</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
   h+='<div class="set-row tap" onclick="showGuide()"><div class="si">'+ic('help')+'</div><div class="stt"><div class="a">¿Cómo funciona?</div><div class="b">Vuelve a ver la guía rápida</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
   h+='</div></div>';
-  h+='<div class="set-sec"><div class="label">Apariencia '+premBadge()+'</div><div class="set-card" style="padding:16px"><div style="font-size:12.5px;color:var(--mut);margin-bottom:13px">Cambia el color y el fondo de la app a tu estilo</div><div style="display:flex;gap:13px;flex-wrap:wrap">'+THEMES.map(t=>'<div onclick="setTheme(\''+t.id+'\')" style="cursor:pointer;text-align:center"><div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,'+t.c3+','+t.c1+');border:2px solid '+((s.premium?(s.theme||'oro'):'oro')===t.id?'#fff':'transparent')+';box-shadow:0 0 0 '+((s.premium?(s.theme||'oro'):'oro')===t.id?'2px '+t.c2:'0 transparent')+'"></div><div style="font-size:10px;color:'+((s.premium?(s.theme||'oro'):'oro')===t.id?'var(--txt)':'var(--mut)')+';margin-top:5px;font-weight:'+((s.premium?(s.theme||'oro'):'oro')===t.id?'700':'400')+'">'+t.name+'</div></div>').join('')+'</div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut2);font-weight:600;margin:16px 0 9px">Fondo animado</div><div class="segs" style="padding:0">'+BGS.map(g=>'<div class="seg'+((s.premium?(s.bgStyle||'aurora'):'solido')===g.id?' on':'')+'" onclick="setBg(\''+g.id+'\')">'+g.name+'</div>').join('')+'</div>'+(s.premium?'':'<div class="hint" style="margin:13px 0 0">Disponible con <b>Premium</b>.</div>')+'</div></div>';
+  h+='<div class="set-sec"><div class="label">Apariencia '+premBadge()+'</div><div class="set-card" style="padding:16px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut2);font-weight:600;margin:0 0 9px">Versión</div><div class="segs" style="padding:0;margin-bottom:18px"><div class="seg'+(s.mode==='light'?'':' on')+'" onclick="setMode(\'dark\')">🌙 Oscuro</div><div class="seg'+(s.mode==='light'?' on':'')+'" onclick="setMode(\'light\')">☀️ Claro</div></div><div style="font-size:12.5px;color:var(--mut);margin-bottom:13px">Cambia el color y el fondo de la app a tu estilo</div><div style="display:flex;gap:13px;flex-wrap:wrap">'+THEMES.map(t=>'<div onclick="setTheme(\''+t.id+'\')" style="cursor:pointer;text-align:center"><div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,'+t.c3+','+t.c1+');border:2px solid '+((s.premium?(s.theme||'oro'):'oro')===t.id?'#fff':'transparent')+';box-shadow:0 0 0 '+((s.premium?(s.theme||'oro'):'oro')===t.id?'2px '+t.c2:'0 transparent')+'"></div><div style="font-size:10px;color:'+((s.premium?(s.theme||'oro'):'oro')===t.id?'var(--txt)':'var(--mut)')+';margin-top:5px;font-weight:'+((s.premium?(s.theme||'oro'):'oro')===t.id?'700':'400')+'">'+t.name+'</div></div>').join('')+'</div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut2);font-weight:600;margin:16px 0 9px">Fondo animado</div><div class="segs" style="padding:0">'+BGS.map(g=>'<div class="seg'+((s.premium?(s.bgStyle||'aurora'):'solido')===g.id?' on':'')+'" onclick="setBg(\''+g.id+'\')">'+g.name+'</div>').join('')+'</div>'+(s.premium?'':'<div class="hint" style="margin:13px 0 0">Disponible con <b>Premium</b>.</div>')+'</div></div>';
   h+='<div class="set-sec"><div class="label">Seguridad</div><div class="set-card">';
   h+='<div class="set-row tap" onclick="changePin()"><div class="si">'+ic('lock')+'</div><div class="stt"><div class="a">'+(s.pin?'Cambiar PIN':'Crear PIN')+'</div><div class="b">'+(s.pin?'PIN de 4 dígitos activo':'Protege tu app con un PIN')+'</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
   h+='<div class="set-row"><div class="si">'+ic('faceid')+'</div><div class="stt"><div class="a">Face ID</div><div class="b">'+(faceOn?'Activado':'Desbloqueo biométrico')+'</div></div>'+swHTML(faceOn,'toggleFace()')+'</div>';
@@ -2053,6 +2068,7 @@ function boot(){
   DB.sched=DB.sched||[];
   const _mig=DB.incomes.filter(i=>i.recur);
   if(_mig.length){_mig.forEach(i=>DB.sched.push({id:uid(),name:i.note||icatById(i.category).name,amount:i.amount,day:i.recurDay||new Date(i.date).getDate(),category:i.category,note:i.note||''}));DB.incomes=DB.incomes.filter(i=>!i.recur);save();}
+  applyMode(DB.settings.mode||'dark');
   applyTheme(DB.settings.theme||'oro');
   buildKeypad();
   const hr=new Date().getHours(),g=hr<12?'Buenos días':hr<19?'Buenas tardes':'Buenas noches';
