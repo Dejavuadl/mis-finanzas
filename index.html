@@ -413,9 +413,11 @@ body{
 .del{color:var(--danger);font-size:14px;font-weight:650;cursor:pointer;text-align:center;padding:14px;display:flex;align-items:center;justify-content:center;gap:7px;margin-top:4px;}
 .del svg{width:17px;height:17px;}
 
-.toast{position:fixed;bottom:calc(104px + var(--sb));left:50%;transform:translateX(-50%) translateY(24px);background:var(--txt);color:var(--bg);padding:13px 20px;border-radius:15px;font-size:14px;font-weight:650;z-index:500;opacity:0;transition:all .35s cubic-bezier(.16,1,.3,1);pointer-events:none;box-shadow:0 12px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:9px;}
-.toast svg{width:18px;height:18px;color:var(--accent);}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast{position:fixed;bottom:calc(104px + var(--sb));left:50%;transform:translateX(-50%) translateY(24px) scale(.96);background:var(--toastbg,rgba(28,26,32,.92));color:#fff;padding:11px 17px 11px 11px;border-radius:17px;font-size:13.5px;font-weight:600;line-height:1.35;z-index:500;opacity:0;transition:all .4s cubic-bezier(.16,1,.3,1);pointer-events:none;box-shadow:0 16px 40px rgba(0,0,0,.4);display:flex;align-items:center;gap:11px;max-width:min(360px,86vw);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);border:1px solid rgba(255,255,255,.1);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+.toast .tck{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3ee0a6,#1fae7c);color:#04210f;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(54,211,153,.4);}
+.toast .tck svg{width:16px;height:16px;stroke-width:2.6;}
+html.light .toast{--toastbg:rgba(33,30,23,.93);}
 
 /* ===== Overlays full-screen (splash / lock / onboarding) ===== */
 .overlay{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -1799,7 +1801,7 @@ $('#cal-prev').onclick=()=>{calM--;if(calM<0){calM=11;calY--;}renderCal();};
 $('#cal-next').onclick=()=>{calM++;if(calM>11){calM=0;calY++;}renderCal();};
 
 let toastT;
-function toast(m){const t=$('#toast');t.innerHTML=ic('check',18)+'<span>'+m+'</span>';t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1900);}
+function toast(m){const t=$('#toast');t.innerHTML='<span class="tck">'+ic('check',16)+'</span><span>'+m+'</span>';t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
 
 /* ============== INVERSIONES (modal) ============== */
 let pickInvCol=INV_COLORS[0];
@@ -1919,7 +1921,7 @@ function debtPaysListHTML(d,origin){const ps=ensurePays(d).slice().sort((a,b)=>n
   return h+'</div>';
 }
 function undoDebtMonth(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d||!d.plan)return;d.pays=ensurePays(d).filter(p=>!(p.kind==='month'&&p.month===monthKey()));syncDebt(d);save();renderSvc();toast('Pago del mes quitado');openDebtPay(id);}
-function payDebtMonth(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d||!d.plan)return;if(paidThisMonth(d)){toast('Ya marcaste este mes 👍');return;}const monthly=Math.min(d.plan.monthly||0,debtRemAmt(d));ensurePays(d).push({id:uid(),amount:monthly,date:new Date().toISOString(),month:monthKey(),kind:'month'});syncDebt(d);save();renderSvc();toast(d.settled?'¡Deuda saldada! 🎉':'Mes pagado ✓');if(d.settled)closeModal();else openDebtPay(id);}
+function payDebtMonth(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d||!d.plan)return;if(paidThisMonth(d)){toast('Ya pagaste este mes');return;}const monthly=Math.min(d.plan.monthly||0,debtRemAmt(d));ensurePays(d).push({id:uid(),amount:monthly,date:new Date().toISOString(),month:monthKey(),kind:'month'});syncDebt(d);save();renderSvc();toast(d.settled?'¡Deuda saldada! 🎉':'Mes pagado ✓');if(d.settled)closeModal();else openDebtPay(id);}
 function delPay(debtId,payId,origin){const d=(DB.debts||[]).find(x=>x.id===debtId);if(!d)return;d.pays=ensurePays(d).filter(p=>p.id!==payId);syncDebt(d);save();renderSvc();toast('Pago eliminado');if(origin==='hist')openDebtHistory();else if(d.plan)openDebtPay(debtId);else closeModal();}
 function openDebtPayCustom(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d)return;const rem=debtRemAmt(d);
   openModal('<h3>Pagar a esta deuda</h3><div class="msub">¿Cuánto vas a pagar ahora?</div><div class="field"><label>Monto</label><input id="dp-amt" inputmode="decimal" placeholder="0" value="'+(d.plan?d.plan.monthly:'')+'"></div><div class="hint" style="margin:-6px 2px 12px">Te faltan $'+fmt(rem)+' en total.</div><button class="btn" onclick="confirmDebtPay(\''+id+'\')">'+ic('check')+'Registrar pago</button><button class="btn ghost" style="margin-top:9px" onclick="confirmDebtPayAll(\''+id+'\')">Pagar todo lo que falta ($'+fmt(rem)+')</button><div class="del" onclick="openDebtPay(\''+id+'\')">'+ic('back',16)+'Volver</div>');
