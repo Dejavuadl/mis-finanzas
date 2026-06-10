@@ -165,6 +165,8 @@ body{
 /* Section header */
 .sect{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 12px;}
 .sect h2{font-size:17px;font-weight:700;}
+.svc-seclbl{display:flex;align-items:center;gap:7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut2);font-weight:600;margin:0 4px 7px;}
+.svc-seclbl svg{width:14px;height:14px;opacity:.8;}
 
 /* Accesos rápidos (Inicio) */
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
@@ -563,7 +565,6 @@ body{
     <div class="top"><div><h1 class="dsp">Servicios</h1><div class="sub">Tus pagos fijos y cuándo tocan</div></div></div>
     <div id="svc-summary"></div>
     <div id="svc-list"></div>
-    <button class="btn" id="add-svc-btn"></button>
   </section>
 
   <!-- AHORROS -->
@@ -1212,32 +1213,32 @@ function renderBalance(){
   box.innerHTML=html;
 }
 function renderSvc(){
-  $('#add-svc-btn').innerHTML=ic('plus')+'Agregar servicio';
-  const box=$('#svc-list'),sum=$('#svc-summary'),debts=DB.debts||[];
-  if(DB.services.length){const totM=DB.services.reduce((s,x)=>s+(x.amount||0),0);
-    sum.innerHTML='<div class="panel" style="display:flex;justify-content:space-between;align-items:center"><div><div class="label" style="margin:0">Pagos fijos al mes</div><div class="tnum" style="font-size:23px;font-weight:800;margin-top:5px">$'+fmt(totM)+'</div></div><div style="color:var(--mut);font-size:13px" class="tnum">'+DB.services.length+' servicios</div></div>';
-  }else sum.innerHTML='';
+  const box=$('#svc-list'),sum=$('#svc-summary'),debts=DB.debts||[];sum.innerHTML='';
   let html='';
+  // ===== PAGOS FIJOS =====
+  const totM=DB.services.reduce((s,x)=>s+(x.amount||0),0);
+  html+='<div class="sect" style="margin:2px 0 12px"><h2 style="display:flex;align-items:center;gap:9px;font-size:17px">'+ic('receipt',19)+'Pagos fijos</h2>'+(DB.services.length?'<span class="tnum" style="color:var(--mut);font-size:13px">$'+fmt(totM)+' /mes</span>':'')+'</div>';
   if(DB.services.length){
     SVCS.forEach(sec=>{
       const items=DB.services.filter(s=>s.section===sec.id).sort((a,b)=>(a.day||32)-(b.day||32));
       if(!items.length)return;
-      html+='<div class="sect"><h2 style="display:flex;align-items:center;gap:9px;font-size:15px">'+ic(sec.i,17)+sec.name+'</h2></div><div class="panel" style="padding:4px 14px">';
+      html+='<div class="svc-seclbl">'+ic(sec.i,14)+sec.name+'</div><div class="panel" style="padding:4px 14px;margin-bottom:12px">';
       items.forEach(s=>{const du=s.day?daysUntil(nextDate(s.day)):null,w=du!=null?whenLabel(du):null,paid=svcPaid(s);
         html+='<div class="row-item" onclick="editSvc(\''+s.id+'\')"><div class="ci">'+ic(sec.i,20)+'</div><div class="ti"><div class="a">'+s.name+'</div><div class="b">'+(paid?'<span style="color:#36d399;font-weight:600">Pagado este mes ✓</span>':'Día '+(s.day||'–')+' de cada mes')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div>'+(s.amount?'<div class="amt tnum">$'+fmt(s.amount)+'</div>':'')+(!paid&&w?'<div class="when '+w.c+'" style="margin-top:4px;display:inline-block">'+w.t+'</div>':'')+'</div><button class="svc-check'+(paid?' on':'')+'" onclick="event.stopPropagation();paySvc(\''+s.id+'\')">'+ic('check',16)+'</button></div></div>';});
       html+='</div>';
     });
-  }else html+='<div class="empty" style="padding:22px 16px 6px"><div class="e">'+ic('receipt',30)+'</div><p>Agrega tus pagos fijos (luz, agua, tenencia, internet…) con el día que tocan.</p></div>';
-  // Sección personal (dinero entre personas)
-  html+='<div class="sect" style="margin-top:22px"><h2 style="display:flex;align-items:center;gap:9px;font-size:15px">'+ic('users',17)+'Personales · dinero entre personas</h2></div>';
+  }else html+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:18px 16px">Luz, agua, internet, tenencia…<br>Agrégalos con el día que tocan y te aviso antes.</div>';
+  html+='<button class="btn" style="margin-top:4px" onclick="addSvc()">'+ic('plus')+'Agregar servicio</button>';
+  // ===== PERSONALES =====
   const act=debts.filter(d=>!d.settled),oweT=act.filter(d=>d.dir==='owe').reduce((s,d)=>s+(d.amount||0),0),owedT=act.filter(d=>d.dir==='owed').reduce((s,d)=>s+(d.amount||0),0);
-  if(oweT||owedT)html+='<div class="panel" style="display:flex;gap:14px;margin-bottom:10px"><div style="flex:1"><div class="label" style="margin:0 0 5px">Yo debo</div><div class="tnum" style="font-size:18px;font-weight:800;color:var(--danger)">$'+fmt(oweT)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin:0 0 5px">Me deben</div><div class="tnum" style="font-size:18px;font-weight:800;color:#36d399">$'+fmt(owedT)+'</div></div></div>';
-  if(!debts.length)html+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:16px">Anota dinero informal entre personas.<br>Ej: <b>"le debo $500 a Adrián"</b> o <b>"Juan me debe $1,000"</b>.</div>';
-  else{html+='<div class="panel" style="padding:4px 14px">';
+  html+='<div class="sect" style="margin:30px 0 4px"><h2 style="display:flex;align-items:center;gap:9px;font-size:17px">'+ic('users',18)+'Personales</h2></div><div class="msub" style="margin:0 2px 12px">Dinero informal entre personas (préstamos, deudas)</div>';
+  if(oweT||owedT)html+='<div class="panel" style="display:flex;gap:14px;margin-bottom:12px"><div style="flex:1"><div class="label" style="margin:0 0 5px">Yo debo</div><div class="tnum" style="font-size:19px;font-weight:800;color:var(--danger)">$'+fmt(oweT)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin:0 0 5px">Me deben</div><div class="tnum" style="font-size:19px;font-weight:800;color:#36d399">$'+fmt(owedT)+'</div></div></div>';
+  if(!debts.length)html+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:18px 16px">Ej: <b>"le debo $500 a Adrián"</b><br>o <b>"Juan me debe $1,000"</b>.</div>';
+  else{html+='<div class="panel" style="padding:4px 14px;margin-bottom:4px">';
     debts.slice().sort((a,b)=>(a.settled?1:0)-(b.settled?1:0)).forEach(d=>{const owe=d.dir==='owe',col=owe?'var(--danger)':'#36d399',sub=d.settled?'Saldado ✓':(d.note||(d.date?new Date(d.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'}):'')||'Pendiente');
       html+='<div class="row-item" onclick="openDebtForm(\''+d.id+'\')"><div class="ci" style="background:'+(owe?'var(--danger-s)':'rgba(54,211,153,.15)')+';color:'+col+'">'+ic(owe?'up':'down',20)+'</div><div class="ti"><div class="a"'+(d.settled?' style="text-decoration:line-through;opacity:.55"':'')+'>'+(owe?'Le debo a ':'Me debe ')+(d.who||'alguien')+'</div><div class="b">'+sub+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div class="amt tnum" style="color:'+(d.settled?'var(--mut)':col)+'">$'+fmt2(d.amount)+'</div><button class="svc-check'+(d.settled?' on':'')+'" onclick="event.stopPropagation();toggleDebt(\''+d.id+'\')">'+ic('check',16)+'</button></div></div>';});
     html+='</div>';}
-  html+='<button class="btn ghost" style="margin-top:10px" onclick="openDebtForm()">'+ic('plus')+'Anotar dinero personal</button>';
+  html+='<button class="btn ghost" style="margin-top:8px" onclick="openDebtForm()">'+ic('plus')+'Anotar dinero personal</button>';
   box.innerHTML=html;
 }
 
@@ -1464,7 +1465,6 @@ function saveSave(id){const name=$('#s-name').value.trim()||'Ahorro',type=modalE
 function delSave(id){DB.savings=DB.savings.filter(s=>s.id!==id);save();closeModal();toast('Eliminado');renderAll();}
 
 $('#add-card-btn').onclick=addCard;
-$('#add-svc-btn').onclick=addSvc;
 $('#avatar').onclick=openSettings;
 $('#cal-prev').onclick=()=>{calM--;if(calM<0){calM=11;calY--;}renderCal();};
 $('#cal-next').onclick=()=>{calM++;if(calM>11){calM=0;calY++;}renderCal();};
