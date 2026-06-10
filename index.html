@@ -44,13 +44,12 @@
   --st:env(safe-area-inset-top,0px);
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;}
-html{background:var(--bg);}
+html{height:100%;background:var(--bg);}
 body{
   font-family:'Inter',system-ui,sans-serif;
   background:var(--bg);
   color:var(--txt);
-  position:fixed;top:0;left:0;right:0;bottom:0;
+  height:100vh;height:100dvh;
   display:flex;flex-direction:column;
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
@@ -423,7 +422,7 @@ body{
 .inv-card .gtoday b{color:#36d399;}
 
 /* ===== Fondo animado (estilo Revolut) ===== */
-#bgfx{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
+#bgfx{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:-1;overflow:hidden;pointer-events:none;}
 #bgfx b{position:absolute;will-change:transform;display:block;mix-blend-mode:screen;}
 /* Aurora (default) — manchas grandes que recorren toda la pantalla */
 #bgfx.aurora b{border-radius:50%;filter:blur(58px);}
