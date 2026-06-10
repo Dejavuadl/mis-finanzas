@@ -1573,7 +1573,9 @@ function selectBank(id){pickBank=id;pickProd=null;if(cardNameAuto)cardDraft.name
 function cardBackToBank(){captureDraft();cardStep='bank';cardModalRender();}
 function cardModalRender(){
   if(cardStep==='bank'){
-    openModal('<h3>'+(cardEditId?'Editar tarjeta':'Nueva tarjeta')+'</h3><div class="msub">Elige tu banco · no pedimos números ni datos bancarios</div><div class="bankpick" id="bankpick" style="max-height:60vh">'+BANKS.map(b=>'<div class="bp" data-b="'+b.id+'" style="background:linear-gradient(135deg,'+b.c1+','+b.c2+')">'+b.name+'</div>').join('')+'</div>');
+    const debB=pickType==='debito';
+    const banks=debB?BANKS.filter(b=>DEBIT_PRODUCTS[b.id]||b.id==='otro'):BANKS;
+    openModal('<h3>'+(cardEditId?'Editar tarjeta':(debB?'Nueva tarjeta de débito':'Nueva tarjeta de crédito'))+'</h3><div class="msub">Elige tu banco · no pedimos números ni datos bancarios</div><div class="bankpick" id="bankpick" style="max-height:60vh">'+banks.map(b=>'<div class="bp" data-b="'+b.id+'" style="background:linear-gradient(135deg,'+b.c1+','+b.c2+')">'+b.name+'</div>').join('')+'</div>');
     $('#bankpick').querySelectorAll('.bp').forEach(el=>el.onclick=()=>selectBank(el.dataset.b));
     return;
   }
@@ -1582,8 +1584,7 @@ function cardModalRender(){
    '<div class="field" id="c-limit-field"><label>Línea de crédito (límite)</label><input id="c-limit" inputmode="decimal" placeholder="Ej: 50,000" value="'+d.limit+'"></div>'+
    '<div class="field"><label>¿Cuánto debes en total? (opcional)</label><input id="c-debt" inputmode="decimal" placeholder="0" value="'+d.debt+'"></div>';
   const debFields='<div class="field"><label>Saldo (lo que tienes guardado)</label><input id="c-balance" inputmode="decimal" placeholder="0" value="'+d.balance+'"></div>';
-  openModal('<div style="display:flex;align-items:center;gap:11px;margin-bottom:14px"><button class="set-back" type="button" onclick="cardBackToBank()">'+ic('chevL',20)+'</button><div><div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.06em">Banco</div><div style="font-family:\'Outfit\',sans-serif;font-size:18px;font-weight:700">'+b.name+'</div></div></div>'+
-   '<div class="segs" style="margin-bottom:15px"><div class="seg'+(!deb?' on':'')+'" onclick="setCardType(\'credito\')">Crédito</div><div class="seg'+(deb?' on':'')+'" onclick="setCardType(\'debito\')">Débito</div></div>'+
+  openModal('<div style="display:flex;align-items:center;gap:11px;margin-bottom:15px"><button class="set-back" type="button" onclick="cardBackToBank()">'+ic('chevL',20)+'</button><div><div style="font-size:11px;color:var(--mut2);text-transform:uppercase;letter-spacing:.06em">'+(deb?'Débito':'Crédito')+'</div><div style="font-family:\'Outfit\',sans-serif;font-size:18px;font-weight:700">'+b.name+'</div></div></div>'+
    '<div class="field" id="prodfield"></div>'+
    '<div class="field"><label>Nombre (como quieras llamarla)</label><input id="c-name" placeholder="'+(deb?'Ej: BBVA Débito':'Ej: BBVA Oro')+'" value="'+d.name+'" oninput="cardNameAuto=false"></div>'+
    '<div class="field"><label>Últimos 4 dígitos (opcional)</label><input id="c-last4" inputmode="numeric" maxlength="4" placeholder="1234" value="'+d.last4+'"></div>'+
