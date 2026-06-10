@@ -1865,7 +1865,8 @@ function renderSettings(){
   const init=(s.name||'A').trim().charAt(0).toUpperCase(),faceOn=!!s.faceCred;
   let h='';
   h+='<div class="set-head"><button class="set-back" onclick="closeSettings()">'+ic('chevL',20)+'</button><h2>Configuración</h2></div>';
-  h+='<div class="prembanner" onclick="openPremium()"><div class="pbic">'+ic('crown',23)+'</div><div class="pbt"><div class="a">Hazte Premium</div><div class="b">IA, reportes, nube y mucho más</div></div>'+ic('chevR',18)+'</div>';
+  if(!s.premium)h+='<div class="prembanner" onclick="openPremium()"><div class="pbic">'+ic('crown',23)+'</div><div class="pbt"><div class="a">Hazte Premium</div><div class="b">IA, reportes, nube y mucho más</div></div>'+ic('chevR',18)+'</div>';
+  else h+='<div class="prembanner" onclick="openPremium()" style="background:rgba(54,211,153,.12);border-color:rgba(54,211,153,.3)"><div class="pbic" style="background:rgba(54,211,153,.2);color:#36d399">'+ic('crown',23)+'</div><div class="pbt"><div class="a">Premium activo</div><div class="b">Disfrutas todas las funciones ✓</div></div>'+ic('chevR',18)+'</div>';
   h+='<div class="set-prof"><div class="pawrap" onclick="pickPhoto()"><div class="pa">'+(s.photo?'<img src="'+s.photo+'" alt="">':init)+'</div><div class="cambadge">'+ic('camera')+'</div></div><div class="pn">'+(s.name||'Tu nombre')+'</div><div class="ps">Cuenta personal · Mis Finanzas</div></div>';
   h+='<div class="set-sec"><div class="label">Cuenta</div><div class="set-card">';
   h+='<div class="set-row tap" onclick="pickPhoto()"><div class="si">'+ic('camera')+'</div><div class="stt"><div class="a">Foto de perfil</div><div class="b">'+(s.photo?'Toca para cambiarla':'Agrega una foto')+'</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
