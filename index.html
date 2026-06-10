@@ -1572,7 +1572,8 @@ function capAdd(ctx,fixedCard,amt,note,dateEl){
     const dc=card?DB.cards.find(x=>x.id===card):null;
     if(dc&&isDebit(dc)){dc.balance=Math.max(0,(dc.balance||0)-v);dc.history=dc.history||[];dc.history.push({t:'out',amt:v,date:date});toast('Gasto pagado con débito ✓');}
     else toast('Gasto guardado');}
-  st.months=1;st.tk=null;save();renderAll();if(ctx==='card'&&detailShown())renderCardDetail(fixedCard);
+  amt.value='';if(note)note.value='';
+  st.months=1;st.tk=null;st.recur=false;save();renderAll();if(ctx==='card'&&detailShown())renderCardDetail(fixedCard);
 }
 /* tickets (foto) */
 let ticketCtx=null,ticketHost=null,ticketFixed=null,editTicketId=null;
