@@ -56,7 +56,8 @@ body{
 .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
 .dsp{font-family:'Outfit',sans-serif;letter-spacing:-.02em;font-weight:700;}
 .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.28em;color:var(--gold);font-weight:600;}
-#app{max-width:480px;margin:0 auto;min-height:100%;position:relative;padding:calc(8px + var(--st)) 0 calc(96px + var(--sb));}
+#app{max-width:480px;margin:0 auto;min-height:100%;position:relative;padding:calc(8px + var(--st)) 0 calc(120px + var(--sb));}
+#navscrim{position:fixed;left:0;right:0;bottom:0;height:calc(98px + var(--sb));z-index:49;pointer-events:none;background:linear-gradient(to top,var(--bg) 0%,var(--bg) 58%,transparent);}
 .screen{display:none;padding:0 18px;}
 .screen.active{display:block;animation:scrn .4s cubic-bezier(.16,1,.3,1);}
 @keyframes scrn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
@@ -618,6 +619,7 @@ body{
     <button class="btn ghost" id="cal-ics" style="box-shadow:none;margin-top:6px" onclick="exportICS()"></button>
   </section>
 
+  <div id="navscrim"></div>
   <nav class="nav" id="nav"></nav>
 </div>
 
@@ -1447,6 +1449,13 @@ function aiCapture(ctx,hostId,fixedCard){if(!DB.settings.premium){openPremium();
     toast('IA llenó los datos ✓');
   });
 }
+function openCaptureAttach(ctx,hostId,fixedCard){
+  const income=(ctx==='balance'&&capState[ctx].mode==='income'),fc=fixedCard?("'"+fixedCard+"'"):'null';
+  openModal('<h3>'+(income?'Comprobante':'Ticket o recibo')+'</h3><div class="msub">¿Qué quieres hacer?</div>'+
+   '<button class="btn" onclick="closeModal();aiCapture(\''+ctx+'\',\''+hostId+'\','+fc+')">'+ic('spark',18)+'Leer con IA y llenar solo</button>'+
+   '<div class="hint" style="text-align:center;margin:9px 0 14px">🔒 100% seguro · tu foto no se guarda</div>'+
+   '<button class="btn ghost" onclick="closeModal();pickTicket(\''+ctx+'\',\''+hostId+'\','+fc+')">'+ic('camera',18)+'Solo adjuntar foto</button>');
+}
 
 /* ============== NAV ============== */
 const NAVITEMS=[['home','Inicio','home'],['exp','Balance','swap'],['cards','Tarjetas','card'],['svc','Servicios','receipt'],['save','Cartera','wallet'],['cal','Agenda','cal']];
@@ -1462,7 +1471,7 @@ function captureHTML(ctx){
   const st=capState[ctx],isBal=ctx==='balance',income=isBal&&st.mode==='income';
   let h='';
   if(isBal)h+='<div class="captog"><div class="tgbtn'+(st.mode==='expense'?' on':'')+'" data-mode="expense">− Gasto</div><div class="tgbtn'+(st.mode==='income'?' on income':'')+'" data-mode="income">+ Ingreso</div></div>';
-  h+='<div class="capn"><span class="curr">$</span><input class="cap-amt" inputmode="decimal" placeholder="0" autocomplete="off"><button class="cap-ai" type="button" title="Leer con IA">'+ic('spark',19)+'</button><button class="cap-ticket'+(st.tk?' on':'')+'" type="button">'+ic('camera',20)+'</button><button class="cap-go" type="button">'+ic('plus',22)+'</button></div>';
+  h+='<div class="capn"><span class="curr">$</span><input class="cap-amt" inputmode="decimal" placeholder="0" autocomplete="off"><button class="cap-ticket'+(st.tk?' on':'')+'" type="button" title="Foto / IA">'+ic('camera',20)+'</button><button class="cap-go" type="button">'+ic('plus',22)+'</button></div>';
   h+='<input class="cap-note" placeholder="Nota (opcional): dónde, con quién…" autocomplete="off">';
   h+='<label class="capdate">'+ic('cal',15)+'<span>Fecha</span><input type="date" class="cap-date" value="'+new Date().toISOString().slice(0,10)+'"></label>';
   h+='<div class="tkflag'+(st.tk?' show':'')+'">'+ic('camera',14)+(income?'Comprobante adjunto':'Ticket adjunto')+' · se guarda con el movimiento</div>';
@@ -1486,8 +1495,7 @@ function mountCapture(hostId,ctx,fixedCard){
   host.querySelectorAll('[data-cat]').forEach(el=>el.onclick=()=>{if(ctx==='balance'&&st.mode==='income')st.icat=el.dataset.cat;else st.cat=el.dataset.cat;setActiveSeg(host,'cat',el);});
   host.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{st.months=parseInt(el.dataset.m);setActiveSeg(host,'months',el);});
   host.querySelectorAll('[data-card]').forEach(el=>el.onclick=()=>{st.cardId=el.dataset.card||null;setActiveSeg(host,'card',el);});
-  const tk=host.querySelector('.cap-ticket');if(tk)tk.onclick=()=>pickTicket(ctx,hostId,fixedCard);
-  const aib=host.querySelector('.cap-ai');if(aib)aib.onclick=()=>aiCapture(ctx,hostId,fixedCard);
+  const tk=host.querySelector('.cap-ticket');if(tk)tk.onclick=()=>openCaptureAttach(ctx,hostId,fixedCard);
   const dateEl=host.querySelector('.cap-date');
   const add=()=>capAdd(ctx,fixedCard,amt,note,dateEl);
   host.querySelector('.cap-go').onclick=add;
