@@ -1670,7 +1670,9 @@ function toggleLimitField(){const lf=$('#c-limit-field');if(!lf)return;if(pickPr
 function pickProduct(id){const p=(prodCatalogFor(pickType,pickBank)||[]).find(x=>x.id===id);if(!p)return;pickProd=p;const nm=$('#c-name'),bn=bankById(pickBank).name;if(nm&&(!nm.value||nm.value===bn||cardNameAuto)){nm.value=prodName(pickBank,p);cardNameAuto=true;}renderProdField();}
 function addCard(){if(!DB.settings.premium&&DB.cards.length>=3){toast('Plan gratis: hasta 3 tarjetas');openPremium();return;}openCardForm();}
 function editCard(id){openCardForm(DB.cards.find(c=>c.id===id));}
+let pendingStmt=null;
 function openCardForm(card,initType){
+  pendingStmt=null;
   cardEditId=card?card.id:null;pickBank=card?card.bank:'';
   pickType=card?(card.type||'credito'):(initType||'credito');
   pickProd=(card&&card.product)?(prodCatalogFor(pickType,card.bank)||[]).find(x=>x.id===card.product):null;
@@ -1691,7 +1693,9 @@ function cardModalRender(){
     return;
   }
   const d=cardDraft,ed=!!cardEditId,b=bankById(pickBank),deb=pickType==='debito';
-  const credFields='<div class="field"><label>Fechas (día del mes)'+qh('corte')+qh('pago')+'</label><div class="two"><div><input id="c-cut" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Corte" value="'+d.cut+'"></div><div><input id="c-pay" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Pago" value="'+d.pay+'"></div></div></div>'+
+  const credFields='<div class="panel tap" onclick="stmtFromForm()" style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:11px;padding:13px 14px"><div style="width:40px;height:40px;border-radius:12px;background:var(--icobg);color:var(--icofg);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ic('spark',20)+'</div><div style="flex:1;min-width:0"><div style="font-weight:650;font-size:14px;display:flex;align-items:center;gap:6px">Leer estado de cuenta '+premBadge()+'</div><div style="font-size:12px;color:var(--mut);line-height:1.4">La IA llena tu deuda, pagos, fechas y movimientos solos. 🔒 100% seguro.</div></div>'+ic('chevR',18)+'</div>'+
+   '<div class="hint" style="margin:-2px 3px 13px">O pon manualmente lo que debes abajo — puedes leerlo después cuando quieras.</div>'+
+   '<div class="field"><label>Fechas (día del mes)'+qh('corte')+qh('pago')+'</label><div class="two"><div><input id="c-cut" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Corte" value="'+d.cut+'"></div><div><input id="c-pay" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Pago" value="'+d.pay+'"></div></div></div>'+
    '<div class="field" id="c-limit-field"><label>Línea de crédito (límite)</label><input id="c-limit" inputmode="decimal" placeholder="Ej: 50,000" value="'+d.limit+'"></div>'+
    '<div class="field"><label>¿Cuánto debes en total? (opcional)</label><input id="c-debt" inputmode="decimal" placeholder="0" value="'+d.debt+'"></div>';
   const debFields='<div class="field"><label>Saldo (lo que tienes guardado)</label><input id="c-balance" inputmode="decimal" placeholder="0" value="'+d.balance+'"></div>';
@@ -1713,10 +1717,24 @@ function saveCard(id){const name=$('#c-name').value.trim()||bankById(pickBank).n
   }
   const cut=clampDay($('#c-cut').value),pay=clampDay($('#c-pay').value),debt=num($('#c-debt').value),limit=num($('#c-limit').value);
   const charge=pickProd&&pickProd.charge?1:0,lim=charge?0:limit;
-  if(id){const c=DB.cards.find(x=>x.id===id);Object.assign(c,{type:'credito',bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});save();closeModal();toast('Tarjeta guardada');renderAll();if(detailShown())renderCardDetail(id);}
-  else{const nid=uid();DB.cards.push({id:nid,type:'credito',bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});save();closeModal();toast('Tarjeta agregada');renderAll();openCard(nid);}
+  if(id){const c=DB.cards.find(x=>x.id===id);Object.assign(c,{type:'credito',bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});if(pendingStmt){applyStmtToCard(id,pendingStmt);pendingStmt=null;}save();closeModal();toast('Tarjeta guardada');renderAll();if(detailShown())renderCardDetail(id);}
+  else{const nid=uid();DB.cards.push({id:nid,type:'credito',bank:pickBank,name,cutDay:cut,payDay:pay,last4,debt,limit:lim,c1:pc1,c2:pc2,product:prod,charge});if(pendingStmt){applyStmtToCard(nid,pendingStmt);pendingStmt=null;}save();closeModal();toast(pendingStmt?'Tarjeta agregada':'Tarjeta agregada');renderAll();openCard(nid);}
 }
 function delCard(id){DB.cards=DB.cards.filter(c=>c.id!==id);DB.expenses=DB.expenses.filter(e=>!(e.cardId===id&&e.months>1));DB.expenses.forEach(e=>{if(e.cardId===id)e.cardId=null;});save();closeModal();toast('Tarjeta eliminada');renderAll();if(detailShown())closeCard();}
+function stmtFromForm(){
+  if(!DB.settings.premium){openPremium();return;}
+  captureDraft();
+  aiScan('statement',d=>{pendingStmt=d;
+    if(d.deuda_total>0)cardDraft.debt=d.deuda_total;
+    const cd=aiDay(d.fecha_corte),pd=aiDay(d.fecha_pago);if(cd)cardDraft.cut=cd;if(pd)cardDraft.pay=pd;
+    cardModalRender();toast('Estado de cuenta leído ✓ — revisa y guarda');
+  });
+}
+function applyStmtToCard(cid,d){const c=DB.cards.find(x=>x.id===cid);if(!c||!d)return;
+  if(d.pago_minimo>0)c.payMin=d.pago_minimo;
+  if(d.pago_no_intereses>0)c.payNoInt=d.pago_no_intereses;
+  (d.movimientos||[]).forEach(m=>{if(!m||!m.monto)return;const meses=m.meses>1?m.meses:1,total=meses>1?(m.mensualidad>0?m.mensualidad*meses:m.monto):m.monto;if(!total)return;DB.expenses.push({id:uid(),amount:total,cardId:cid,category:'otros',note:m.descripcion||'',months:meses,monthsPaid:0,ticket:null,date:aiIso(m.fecha),createdAt:Date.now()});});
+}
 
 let pickMonths=1;
 function editExp(id){
