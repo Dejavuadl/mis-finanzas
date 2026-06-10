@@ -1,6 +1,6 @@
 {
   "name": "Mis Finanzas",
-  "short_name": "Finanzas",
+  "short_name": "Mis Finanzas",
   "description": "Controla tus tarjetas, gastos, ingresos, ahorros e inversiones.",
   "start_url": "./",
   "scope": "./",
