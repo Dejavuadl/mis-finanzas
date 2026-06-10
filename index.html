@@ -999,9 +999,10 @@ function applyBg(style){const prem=!!DB.settings.premium;if(!prem)style='solido'
  }
 }
 function applyMode(m){document.documentElement.classList.toggle('light',m==='light');const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content',m==='light'?'#ede9e0':'#08080a');}
-function setMode(m){DB.settings.mode=m;save();applyMode(m);renderSettings();toast(m==='light'?'Versión clara':'Versión oscura');}
+function setMode(m){DB.settings.mode=m;save();applyMode(m);applyTheme(DB.settings.theme||'oro');renderSettings();toast(m==='light'?'Versión clara':'Versión oscura');}
 function applyTheme(id){if(!DB.settings.premium)id='oro';const t=THEMES.find(x=>x.id===id)||THEMES[0],r=document.documentElement.style;
- r.setProperty('--gold',t.c2);r.setProperty('--gold2',t.c3);r.setProperty('--gold-d',t.c1);
+ const lite=document.documentElement.classList.contains('light');
+ r.setProperty('--gold',t.c2);r.setProperty('--gold2',lite?t.c1:t.c3);r.setProperty('--gold-d',t.c1);r.setProperty('--accbright',t.c3);
  r.setProperty('--primary',t.c2);r.setProperty('--accent',t.c2);
  r.setProperty('--accrgb',hexRgb(t.c2));r.setProperty('--acc2rgb',hexRgb(t.c3));
  r.setProperty('--gold-s',hexA(t.c2,.13));r.setProperty('--accent-s',hexA(t.c2,.13));
@@ -1421,7 +1422,7 @@ function renderSvc(){
   if(!debts.length){html+=svcAddCard("openDebtForm()","Anotar dinero personal","Ej: <b>«le debo $500 a Adrián»</b> o <b>«Juan me debe $1,000»</b>.");}
   else{html+='<div class="panel" style="padding:4px 14px;margin-bottom:8px">';
     debts.slice().sort((a,b)=>(a.settled?1:0)-(b.settled?1:0)).forEach(d=>{const owe=d.dir==='owe',col=owe?'var(--danger)':'#36d399';
-      const planSub=d.plan&&d.plan.day?('$'+fmt(Math.round((d.amount||0)/(d.plan.months||1)))+'/mes · día '+d.plan.day+' · '+d.plan.months+' meses'):null;
+      const planSub=d.plan?('$'+fmt(d.plan.monthly||0)+'/mes · día '+d.plan.day+' · '+d.plan.months+' meses'):null;
       const sub=d.settled?'Saldado ✓':(planSub||d.note||(d.date?new Date(d.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'}):'')||'Pendiente');
       html+='<div class="row-item" onclick="openDebtForm(\''+d.id+'\')"><div class="ci" style="background:'+(owe?'var(--danger-s)':'rgba(54,211,153,.15)')+';color:'+col+'">'+ic(owe?'up':'down',20)+'</div><div class="ti"><div class="a"'+(d.settled?' style="text-decoration:line-through;opacity:.55"':'')+'>'+(owe?'Le debo a ':'Me debe ')+(d.who||'alguien')+'</div><div class="b">'+sub+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div class="amt tnum" style="color:'+(d.settled?'var(--mut)':col)+'">$'+fmt2(d.amount)+'</div><button class="svc-check'+(d.settled?' on':'')+'" onclick="event.stopPropagation();toggleDebt(\''+d.id+'\')">'+ic('check',16)+'</button></div></div>';});
     html+='</div>';
@@ -1845,7 +1846,7 @@ function openDebtForm(id){
   openModal('<h3>'+(d?'Editar':'Dinero personal')+'</h3><div class="msub">Lo que le debes a alguien o lo que te deben</div>'+
    '<div class="field"><label>¿Qué pasó?</label><div class="picker" style="grid-template-columns:1fr 1fr" id="debt-dir"><div class="pick '+(pickDebtDir==='owe'?'on':'')+'" data-d="owe">'+ic('up',20)+'Yo debo</div><div class="pick '+(pickDebtDir==='owed'?'on':'')+'" data-d="owed">'+ic('down',20)+'Me deben</div></div></div>'+
    '<div class="field"><label>¿A quién / quién?</label><input id="debt-who" placeholder="Ej: Adrián" value="'+eA(d?d.who:'')+'"></div>'+
-   '<div class="field two"><div><label>Monto</label><input id="debt-amt" inputmode="decimal" placeholder="0" value="'+(d?d.amount:'')+'" oninput="planCalc()"></div><div><label>Fecha</label><input id="debt-date" type="date" value="'+today+'"></div></div>'+
+   '<div class="field two"><div><label id="debt-amt-lbl">Monto</label><input id="debt-amt" inputmode="decimal" placeholder="0" value="'+((d&&d.plan)?d.plan.monthly:(d?d.amount:''))+'" oninput="planCalc()"></div><div><label>Fecha</label><input id="debt-date" type="date" value="'+today+'"></div></div>'+
    '<div class="field"><label>¿Cómo se paga?</label><div class="picker" style="grid-template-columns:1fr 1fr" id="debt-plan"><div class="pick '+(pickDebtPlan?'':'on')+'" data-p="0">Una sola vez</div><div class="pick '+(pickDebtPlan?'on':'')+'" data-p="1">'+ic('repeat',18)+'Cada mes</div></div></div>'+
    '<div id="plan-fields" style="display:'+(pickDebtPlan?'block':'none')+'">'+
      '<div class="field two"><div><label>Día del mes</label><input id="plan-day" inputmode="numeric" placeholder="Ej: 5" value="'+((d&&d.plan)?d.plan.day:'')+'" oninput="planCalc()"></div><div><label>¿Por cuántos meses?</label><input id="plan-months" inputmode="numeric" placeholder="Ej: 12" value="'+((d&&d.plan)?d.plan.months:'')+'" oninput="planCalc()"></div></div>'+
@@ -1857,17 +1858,18 @@ function openDebtForm(id){
   $('#debt-plan').querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickDebtPlan=el.dataset.p==='1';$('#debt-plan').querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');$('#plan-fields').style.display=pickDebtPlan?'block':'none';planCalc();});
   planCalc();
 }
-function planCalc(){const el=$('#plan-calc');if(!el)return;if(!pickDebtPlan){el.textContent='';return;}
+function planCalc(){const lbl=$('#debt-amt-lbl');if(lbl)lbl.textContent=pickDebtPlan?'Pago por mes':'Monto';
+  const el=$('#plan-calc');if(!el)return;if(!pickDebtPlan){el.textContent='';return;}
   const amt=num(($('#debt-amt')||{}).value||0),m=parseInt(($('#plan-months')||{}).value||0,10),day=parseInt(($('#plan-day')||{}).value||0,10);
-  if(amt&&m>0){el.innerHTML='Pagarías <b>$'+fmt(Math.round(amt/m))+'</b> al mes'+(day?', el día '+day:'')+' durante '+m+' meses. Te aviso cada mes.';}
-  else el.textContent='Te recordaré pagar cada mes el día que elijas.';
+  if(amt&&m>0){el.innerHTML='Son <b>$'+fmt(amt*m)+'</b> en total ($'+fmt(amt)+' al mes'+(day?', el día '+day:'')+' durante '+m+' meses). Te aviso cada mes.';}
+  else el.textContent='Pon el pago de cada mes y por cuántos meses. Te recordaré cada mes.';
 }
 function saveDebt(id){const who=$('#debt-who').value.trim(),amt=num($('#debt-amt').value);if(!amt){toast('Escribe el monto');return;}
   const dstr=$('#debt-date').value,date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString(),note=$('#debt-note').value.trim();
-  let plan=null;if(pickDebtPlan){const day=parseInt(($('#plan-day')||{}).value||0,10),months=parseInt(($('#plan-months')||{}).value||0,10);if(day&&months>0)plan={day:Math.min(31,Math.max(1,day)),months};}
+  let plan=null,total=amt;if(pickDebtPlan){const day=parseInt(($('#plan-day')||{}).value||0,10),months=parseInt(($('#plan-months')||{}).value||0,10);if(months>0){plan={day:Math.min(31,Math.max(1,day||1)),months,monthly:amt};total=amt*months;}}
   DB.debts=DB.debts||[];
-  if(id){const d=DB.debts.find(x=>x.id===id);if(d)Object.assign(d,{who,amount:amt,dir:pickDebtDir,note,date,plan});}
-  else DB.debts.push({id:uid(),who,amount:amt,dir:pickDebtDir,note,date,settled:false,plan});
+  if(id){const d=DB.debts.find(x=>x.id===id);if(d)Object.assign(d,{who,amount:total,dir:pickDebtDir,note,date,plan});}
+  else DB.debts.push({id:uid(),who,amount:total,dir:pickDebtDir,note,date,settled:false,plan});
   save();closeModal();toast('Guardado');renderAll();
 }
 function toggleDebt(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d)return;d.settled=!d.settled;save();toast(d.settled?'Saldado ✓':'Marcado pendiente');renderSvc();}
@@ -2215,7 +2217,7 @@ function pushReminders(){
   });
   DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,type:'servicio',name:s.name,amount:(s.amount||0)}));});
   (DB.sched||[]).forEach(s=>{if(s.day&&nf.ingresos!==false&&!schedGotThisMonth(s))occ(s.day).forEach(d=>out.push({date:d,type:'ingreso',name:(s.name||icatById(s.category).name),amount:(s.amount||0)}));});
-  (DB.debts||[]).forEach(d=>{if(d.plan&&d.plan.day&&!d.settled&&nf.pagos!==false){const monthly=Math.round((d.amount||0)/(d.plan.months||1));const isOwed=d.dir==='owed';occ(d.plan.day).forEach(dt=>out.push({date:dt,type:isOwed?'ingreso':'pago',name:(d.who||(isOwed?'cobro':'pago')),amount:monthly}));}});
+  (DB.debts||[]).forEach(d=>{if(d.plan&&d.plan.day&&!d.settled&&nf.pagos!==false){const monthly=d.plan.monthly||0;const isOwed=d.dir==='owed';occ(d.plan.day).forEach(dt=>out.push({date:dt,type:isOwed?'ingreso':'pago',name:(d.who||(isOwed?'cobro':'pago')),amount:monthly}));}});
   return out;
 }
 async function getSub(){const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID_PUB)});return sub;}
