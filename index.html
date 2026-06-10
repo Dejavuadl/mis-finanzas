@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#08080a">
@@ -53,6 +53,8 @@ body{
   display:flex;flex-direction:column;
   overflow:hidden;
   isolation:isolate;
+  touch-action:manipulation;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
   -webkit-font-smoothing:antialiased;
   letter-spacing:-.01em;
 }
@@ -1519,6 +1521,8 @@ function moveNavPill(){const b=$('.nav button.on'),pill=$('#nav-pill');if(b&&pil
 function go(name){$$('.screen').forEach(s=>s.classList.remove('active'));$('#s-'+name).classList.add('active');$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name));moveNavPill();const a=$('#app');if(a)a.scrollTop=0;renderAll();}
 $$('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.go));
 window.addEventListener('resize',moveNavPill);
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('gesturechange',e=>e.preventDefault());
 
 /* ============== CAPTURA CON CHIPS ============== */
 const capState={home:{cat:'otros',months:1,cardId:null,tk:null,open:false},balance:{mode:'expense',cat:'otros',icat:'sueldo',months:1,cardId:null,tk:null,recur:false,open:false},card:{cat:'otros',months:1,tk:null,open:false}};
@@ -1953,9 +1957,9 @@ $('#photo-input').addEventListener('change',function(e){
   const file=e.target.files&&e.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=ev=>{const img=new Image();img.onload=()=>{
-    const max=320,sc=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
-    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-    try{DB.settings.photo=c.toDataURL('image/jpeg',0.82);save();toast('Foto actualizada');renderSettings();renderAll();}catch(err){toast('No se pudo guardar la foto');}
+    const side=Math.min(img.width,img.height),sx=(img.width-side)/2,sy=(img.height-side)/2,size=400;
+    const c=document.createElement('canvas');c.width=size;c.height=size;c.getContext('2d').drawImage(img,sx,sy,side,side,0,0,size,size);
+    try{DB.settings.photo=c.toDataURL('image/jpeg',0.85);save();toast('Foto actualizada');renderSettings();renderAll();}catch(err){toast('No se pudo guardar la foto');}
   };img.onerror=()=>toast('Imagen no válida');img.src=ev.target.result;};
   reader.readAsDataURL(file);e.target.value='';
 });
