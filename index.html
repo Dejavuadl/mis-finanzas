@@ -243,6 +243,9 @@ body{
 .hist-link{display:flex;align-items:center;justify-content:center;gap:7px;margin:4px auto 0;padding:9px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;}
 .hist-link:active{opacity:.6;}
 .hist-link svg{width:15px;height:15px;}
+.undo-pill{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--line);color:var(--mut);font-size:11.5px;font-weight:650;padding:7px 11px;border-radius:999px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
+.undo-pill:active{transform:scale(.94);}
+.undo-pill svg{width:13px;height:13px;}
 
 /* Accesos rápidos (Inicio) */
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
@@ -1917,12 +1920,16 @@ function openDebtPay(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d)return;
 }
 function debtPaysListHTML(d,origin){const ps=ensurePays(d).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));if(!ps.length)return '';
   let h='<div class="label" style="margin:18px 2px 8px">Pagos de esta deuda</div><div class="panel" style="padding:4px 14px">';
-  ps.forEach(p=>{h+='<div class="row-item"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('down',18)+'</div><div class="ti"><div class="a">$'+fmt2(p.amount)+'</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+' · '+(p.kind==='month'?'mensualidad':'abono')+'</div></div><button class="svc-check" onclick="delPay(\''+d.id+'\',\''+p.id+'\',\''+(origin||'detail')+'\')">'+ic('trash',15)+'</button></div>';});
+  ps.forEach(p=>{h+='<div class="row-item"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('down',18)+'</div><div class="ti"><div class="a">$'+fmt2(p.amount)+'</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+' · '+(p.kind==='month'?'mensualidad':'abono')+'</div></div><button class="undo-pill" onclick="confirmDelPay(\''+d.id+'\',\''+p.id+'\',\''+(origin||'detail')+'\')">'+ic('back',13)+'Deshacer</button></div>';});
   return h+'</div>';
 }
 function undoDebtMonth(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d||!d.plan)return;d.pays=ensurePays(d).filter(p=>!(p.kind==='month'&&p.month===monthKey()));syncDebt(d);save();renderSvc();toast('Pago del mes quitado');openDebtPay(id);}
 function payDebtMonth(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d||!d.plan)return;if(paidThisMonth(d)){toast('Ya pagaste este mes');return;}const monthly=Math.min(d.plan.monthly||0,debtRemAmt(d));ensurePays(d).push({id:uid(),amount:monthly,date:new Date().toISOString(),month:monthKey(),kind:'month'});syncDebt(d);save();renderSvc();toast(d.settled?'¡Deuda saldada! 🎉':'Mes pagado ✓');if(d.settled)closeModal();else openDebtPay(id);}
-function delPay(debtId,payId,origin){const d=(DB.debts||[]).find(x=>x.id===debtId);if(!d)return;d.pays=ensurePays(d).filter(p=>p.id!==payId);syncDebt(d);save();renderSvc();toast('Pago eliminado');if(origin==='hist')openDebtHistory();else if(d.plan)openDebtPay(debtId);else closeModal();}
+function confirmDelPay(debtId,payId,origin){const d=(DB.debts||[]).find(x=>x.id===debtId);if(!d)return;const p=ensurePays(d).find(x=>x.id===payId);if(!p)return;
+  const back=origin==='hist'?'openDebtHistory()':'openDebtPay(\''+debtId+'\')';
+  openModal('<div style="text-align:center;padding:4px 0 2px"><div style="width:60px;height:60px;border-radius:18px;background:var(--danger-s);color:var(--danger);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">'+ic('back',28)+'</div></div><h3 style="text-align:center">¿Deshacer este pago?</h3><div class="msub" style="text-align:center;margin-bottom:20px">Se quita del historial y <b>$'+fmt2(p.amount)+'</b> vuelve a contar como pendiente de '+(d.who||'esta deuda')+'. No borra la deuda.</div><button class="btn" style="background:var(--danger);box-shadow:none" onclick="delPay(\''+debtId+'\',\''+payId+'\',\''+(origin||'detail')+'\')">'+ic('back',17)+'Sí, deshacer pago</button><div class="del" style="color:var(--mut)" onclick="'+back+'">Cancelar</div>');
+}
+function delPay(debtId,payId,origin){const d=(DB.debts||[]).find(x=>x.id===debtId);if(!d)return;d.pays=ensurePays(d).filter(p=>p.id!==payId);syncDebt(d);save();renderSvc();toast('Pago deshecho');if(origin==='hist')openDebtHistory();else if(d.plan)openDebtPay(debtId);else closeModal();}
 function openDebtPayCustom(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d)return;const rem=debtRemAmt(d);
   openModal('<h3>Pagar a esta deuda</h3><div class="msub">¿Cuánto vas a pagar ahora?</div><div class="field"><label>Monto</label><input id="dp-amt" inputmode="decimal" placeholder="0" value="'+(d.plan?d.plan.monthly:'')+'"></div><div class="hint" style="margin:-6px 2px 12px">Te faltan $'+fmt(rem)+' en total.</div><button class="btn" onclick="confirmDebtPay(\''+id+'\')">'+ic('check')+'Registrar pago</button><button class="btn ghost" style="margin-top:9px" onclick="confirmDebtPayAll(\''+id+'\')">Pagar todo lo que falta ($'+fmt(rem)+')</button><div class="del" onclick="openDebtPay(\''+id+'\')">'+ic('back',16)+'Volver</div>');
 }
@@ -1937,7 +1944,7 @@ function openDebtHistory(){
     settled.forEach(d=>{const owe=d.dir==='owe';h+='<div class="row-item" onclick="'+(d.plan?'openDebtPay':'openDebtForm')+'(\''+d.id+'\')"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('check',20)+'</div><div class="ti"><div class="a">'+(owe?'Le debí a ':'Me debía ')+(d.who||'alguien')+'</div><div class="b">'+(d.settledAt?'Saldada '+new Date(d.settledAt).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'}):'Saldada')+'</div></div><div class="amt tnum" style="color:var(--mut)">$'+fmt2(d.amount)+'</div></div>';});
     h+='</div>';}
   if(pays.length){h+='<div class="label" style="margin:0 2px 8px">Pagos realizados</div><div class="panel" style="padding:4px 14px">';
-    pays.forEach(x=>{const p=x.p,d=x.d;h+='<div class="row-item"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('down',18)+'</div><div class="ti"><div class="a">$'+fmt2(p.amount)+' · '+(d.who||'alguien')+'</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+' · '+(p.kind==='month'?'mensualidad':(p.kind==='extra'?'abono':'pago'))+'</div></div><button class="svc-check" onclick="delPay(\''+d.id+'\',\''+p.id+'\',\'hist\')">'+ic('trash',15)+'</button></div>';});
+    pays.forEach(x=>{const p=x.p,d=x.d;h+='<div class="row-item"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('down',18)+'</div><div class="ti"><div class="a">$'+fmt2(p.amount)+' · '+(d.who||'alguien')+'</div><div class="b">'+new Date(p.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+' · '+(p.kind==='month'?'mensualidad':(p.kind==='extra'?'abono':'pago'))+'</div></div><button class="undo-pill" onclick="confirmDelPay(\''+d.id+'\',\''+p.id+'\',\'hist\')">'+ic('back',13)+'Deshacer</button></div>';});
     h+='</div>';}
   if(!settled.length&&!pays.length)h+='<div style="text-align:center;color:var(--mut);font-size:13px;margin-top:20px">Aún no hay pagos registrados.</div>';
   openModal(h);
