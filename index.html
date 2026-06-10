@@ -209,6 +209,9 @@ body{
 .cc .dates .d .l svg{width:11px;height:11px;}
 .cc .edit{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.28);border:1px solid rgba(var(--acc2rgb),.3);color:var(--gold2);width:32px;height:32px;border-radius:10px;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
 .cc .edit svg{width:16px;height:16px;}
+.cc .cc-grip{position:absolute;top:16px;right:56px;background:rgba(0,0,0,.28);border:1px solid rgba(var(--acc2rgb),.3);color:var(--gold2);width:32px;height:32px;border-radius:10px;cursor:grab;z-index:3;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);touch-action:none;}
+.cc .cc-grip svg{width:18px;height:18px;}
+.cc.dragging{z-index:20;box-shadow:0 24px 50px -10px rgba(0,0,0,.85);opacity:.97;}
 .cc .msiline{position:relative;margin-top:12px;padding-top:10px;border-top:1px solid rgba(var(--acc2rgb),.2);font-size:11.5px;font-weight:600;color:rgba(var(--acc2rgb),.96);display:flex;align-items:center;gap:6px;}
 .cc .msiline svg{width:13px;height:13px;}
 .cc .ccbar{height:6px;border-radius:999px;background:rgba(255,255,255,.25);overflow:hidden;margin-top:11px;position:relative;}
@@ -691,6 +694,7 @@ const P = {
   locksm:'<rect width="18" height="11" x="3" y="11" rx="2.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   contactless:'<path d="M5 9a8 8 0 0 1 0 6"/><path d="M9 7a13 13 0 0 1 0 10"/><path d="M13 5a18 18 0 0 1 0 14"/>',
   x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  move:'<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
   pie:'<path d="M12 3v9l6.5 6.5A9 9 0 1 1 12 3z"/><path d="M16 3.5A9 9 0 0 1 20.5 8H12z"/>',
 };
@@ -933,8 +937,20 @@ function renderCards(){
       rightCol='<div class="d" style="margin-left:auto;text-align:right"><div class="v tnum">$'+fmt(disp)+'</div><div class="l" style="justify-content:flex-end">Disponible</div></div>';
       bar='<div class="ccbar"><i style="width:'+pu+'%;background:'+(pu>85?'#ff8a80':'#fff')+'"></i></div><div class="cclbl"><span>Usado $'+fmt(usado)+'</span><span>Límite $'+fmt(c.limit)+'</span></div>';}
     else if((c.debt||0)>0)rightCol='<div class="d" style="margin-left:auto;text-align:right"><div class="v tnum">$'+fmt(c.debt)+'</div><div class="l" style="justify-content:flex-end">Debes</div></div>';
-    return '<div class="cc rise" onclick="openCard(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms"><button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button><div class="crow"><div class="bank">'+c.name+(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'')+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">'+(c.cutDay||'–')+'</div><div class="l">'+ic('scissors',11)+'Corte</div></div><div class="d"><div class="v tnum">'+(c.payDay||'–')+'</div><div class="l">'+ic('coins',11)+'Pago</div></div>'+rightCol+'</div>'+bar+(msi>0?'<div class="msiline">'+ic('suscrip',13)+'$'+fmt(msi)+' / mes a meses</div>':'')+'</div></div>';}).join('');
+    return '<div class="cc rise" data-id="'+c.id+'" onclick="openCard(\''+c.id+'\')" style="cursor:pointer;background:'+cgrad(c)+';animation-delay:'+(i*60)+'ms"><button class="cc-grip" onpointerdown="startCardDrag(event,\''+c.id+'\')" onclick="event.stopPropagation()">'+ic('move',18)+'</button><button class="edit" onclick="event.stopPropagation();editCard(\''+c.id+'\')">'+ic('pencil',16)+'</button><div class="crow"><div class="bank">'+c.name+(c.name.toLowerCase().indexOf(designLabel(c).toLowerCase())<0?'<div class="cc-brand">'+designLabel(c)+'</div>':'')+'</div><div class="cc-cont">'+ic('contactless',21)+'</div></div><div class="chip-ic"></div><div><div class="num">•••• '+(c.last4||'••••')+'</div><div class="dates" style="margin-top:13px"><div class="d"><div class="v tnum">'+(c.cutDay||'–')+'</div><div class="l">'+ic('scissors',11)+'Corte</div></div><div class="d"><div class="v tnum">'+(c.payDay||'–')+'</div><div class="l">'+ic('coins',11)+'Pago</div></div>'+rightCol+'</div>'+bar+(msi>0?'<div class="msiline">'+ic('suscrip',13)+'$'+fmt(msi)+' / mes a meses</div>':'')+'</div></div>';}).join('');
 }
+
+/* ===== Reordenar tarjetas (arrastrar) ===== */
+let dragEl=null,dragStartY=0;
+function startCardDrag(ev,id){ev.preventDefault();ev.stopPropagation();const el=document.querySelector('.cc[data-id="'+id+'"]');if(!el)return;dragEl=el;dragStartY=ev.clientY;el.classList.add('dragging');try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}
+  window.addEventListener('pointermove',onCardMove,{passive:false});window.addEventListener('pointerup',endCardDrag,{once:true});window.addEventListener('pointercancel',endCardDrag,{once:true});}
+function onCardMove(ev){if(!dragEl)return;ev.preventDefault();dragEl.style.transform='translateY('+(ev.clientY-dragStartY)+'px) scale(1.03)';}
+function endCardDrag(){if(!dragEl)return;window.removeEventListener('pointermove',onCardMove);
+  const box=$('#cards-list'),others=[...box.querySelectorAll('.cc')].filter(c=>c!==dragEl),dr=dragEl.getBoundingClientRect(),mid=dr.top+dr.height/2;
+  let newIdx=0;for(const c of others){const r=c.getBoundingClientRect();if(mid>r.top+r.height/2)newIdx++;}
+  const id=dragEl.dataset.id,arr=DB.cards.slice(),from=arr.findIndex(c=>c.id===id);
+  if(from>=0){const it=arr.splice(from,1)[0];arr.splice(newIdx,0,it);DB.cards=arr;save();}
+  dragEl.classList.remove('dragging');dragEl.style.transform='';dragEl=null;renderAll();}
 
 /* ===== Detalle de tarjeta (control total) ===== */
 let curCard=null;
