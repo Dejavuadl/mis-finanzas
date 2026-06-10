@@ -933,7 +933,7 @@ function renderHome(){
   const prow=(icon,title,sub,fn)=>'<div onclick="'+fn+'" style="display:flex;align-items:center;gap:13px;background:rgba(19,18,21,.74);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:11px;cursor:pointer"><div style="width:42px;height:42px;border-radius:12px;background:var(--accent-s);color:var(--gold2);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ic(icon,20)+'</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:7px">'+title+lk+'</div><div style="font-size:12.5px;color:var(--mut);margin-top:2px">'+sub+'</div></div>'+ic('chevR',18)+'</div>';
   $('#home-health').innerHTML='<div class="sect"><h2>Premium</h2></div>'+prow('target','Salud financiera','Tu puntaje y probabilidad de aumento','openHealth()')+prow('pie','Reportes','En qué se va tu dinero, por categoría','openReports()')+prow('receipt','Presupuestos','Pon límites y evita pasarte','openBudgets()');
   const al=[],nf=DB.settings.notif||{},win=nf.dias||3;
-  DB.cards.forEach(c=>{if(c.cutDay&&nf.cortes!==false){const d=daysUntil(nextDate(c.cutDay));if(d<=win)al.push({card:c,type:'cut',d});}if(c.payDay&&nf.pagos!==false){const d=daysUntil(nextDate(c.payDay));if(d<=win+2)al.push({card:c,type:'pay',d});}});
+  DB.cards.forEach(c=>{if(c.cutDay&&nf.cortes!==false){const d=daysUntil(nextDate(c.cutDay));if(d<=win)al.push({card:c,type:'cut',d});}const debe=(c.debt||0)>0||(c.payMin||0)>0||(c.payNoInt||0)>0||cardMsiMonthly(c.id)>0;if(c.payDay&&nf.pagos!==false&&debe){const d=daysUntil(nextDate(c.payDay));if(d<=win+2)al.push({card:c,type:'pay',d});}});
   DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s)){const d=daysUntil(nextDate(s.day));if(d<=win)al.push({svc:s,type:'svc',d});}});
   al.sort((a,b)=>a.d-b.d);
   const box=$('#alerts-list');
@@ -1709,7 +1709,11 @@ function pushReminders(){
   const nf=DB.settings.notif||{},out=[],today=new Date();today.setHours(0,0,0,0);
   const ymd=d=>d.toISOString().slice(0,10);
   const occ=day=>{const arr=[];for(let k=0;k<3;k++){const dd=new Date(today.getFullYear(),today.getMonth()+k,1),dim=new Date(dd.getFullYear(),dd.getMonth()+1,0).getDate(),dt=new Date(dd.getFullYear(),dd.getMonth(),Math.min(day,dim));dt.setHours(0,0,0,0);if(dt>=today)arr.push(ymd(dt));}return arr;};
-  DB.cards.forEach(c=>{if(c.cutDay&&nf.cortes!==false)occ(c.cutDay).forEach(d=>out.push({date:d,title:'Corte de '+c.name,body:'se genera tu estado de cuenta'}));if(c.payDay&&nf.pagos!==false)occ(c.payDay).forEach(d=>out.push({date:d,title:'Pago de '+c.name,body:'fecha límite de pago'}));});
+  DB.cards.forEach(c=>{
+    if(c.cutDay&&nf.cortes!==false)occ(c.cutDay).forEach(d=>out.push({date:d,title:'Corte de '+c.name,body:'se genera tu estado de cuenta'}));
+    const debe=(c.debt||0)>0||(c.payMin||0)>0||(c.payNoInt||0)>0||cardMsiMonthly(c.id)>0;
+    if(c.payDay&&nf.pagos!==false&&debe)occ(c.payDay).forEach(d=>out.push({date:d,title:'Pago de '+c.name,body:'fecha límite'+((c.debt||0)>0?' · debes $'+fmt(c.debt):'')}));
+  });
   DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,title:s.name,body:'pago de servicio'+(s.amount?' · $'+fmt(s.amount):'')}));});
   return out;
 }
