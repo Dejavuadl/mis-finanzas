@@ -231,6 +231,10 @@ body{
 .addcard .acp{width:46px;height:46px;border-radius:14px;background:var(--icobg);color:var(--icofg);display:flex;align-items:center;justify-content:center;margin:0 auto 11px;}
 .addcard .act{font-weight:700;font-size:15px;font-family:'Outfit',sans-serif;}
 .addcard .ach{font-size:12.5px;color:var(--mut);margin-top:5px;line-height:1.5;}
+.panel.tap{cursor:pointer;transition:transform .14s;}
+.panel.tap:active{transform:scale(.99);}
+.pbar{height:7px;border-radius:6px;background:var(--surface3);overflow:hidden;}
+.pbar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--gold2));transition:width .5s cubic-bezier(.4,0,.2,1);}
 
 /* Accesos rápidos (Inicio) */
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
@@ -914,7 +918,7 @@ const CATS=[
 ];
 
 let DB=load();
-function load(){try{const d=JSON.parse(localStorage.getItem('finanzas_v1'));if(d){d.investments=d.investments||[];d.settings=d.settings||{};d.incomes=d.incomes||[];d.services=d.services||[];d.sched=d.sched||[];return d;}}catch(e){}return {cards:[],expenses:[],savings:[],investments:[],incomes:[],services:[],sched:[],settings:{}};}
+function load(){try{const d=JSON.parse(localStorage.getItem('finanzas_v1'));if(d){d.investments=d.investments||[];d.settings=d.settings||{};d.incomes=d.incomes||[];d.services=d.services||[];d.sched=d.sched||[];d.loans=d.loans||[];return d;}}catch(e){}return {cards:[],expenses:[],savings:[],investments:[],incomes:[],services:[],sched:[],loans:[],settings:{}};}
 
 const ICATS=[
   {id:'sueldo',name:'Sueldo',i:'coins'},{id:'freelance',name:'Freelance',i:'invest'},
@@ -1404,6 +1408,8 @@ function renderSvc(){
     });
     html+='<button class="btn" style="margin-top:2px" onclick="addSvc()">'+ic('plus')+'Agregar servicio</button>';
   }else html+=svcAddCard("addSvc()","Agregar tu primer servicio","Luz, agua, internet, tenencia… con el día que tocan y te aviso antes.");
+  // ===== DEUDAS =====
+  html+=loanSectionHTML();
   // ===== INGRESOS PROGRAMADOS =====
   html+=schedSectionHTML();
   // ===== PERSONALES =====
@@ -1847,6 +1853,84 @@ function saveDebt(id){const who=$('#debt-who').value.trim(),amt=num($('#debt-amt
 }
 function toggleDebt(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d)return;d.settled=!d.settled;save();toast(d.settled?'Saldado ✓':'Marcado pendiente');renderSvc();}
 function delDebt(id){DB.debts=(DB.debts||[]).filter(x=>x.id!==id);save();closeModal();toast('Eliminado');renderAll();}
+/* ===== DEUDAS (grandes, con abonos) ===== */
+let pickLoanDir='owe';
+function loanPaid(l){return (l.abonos||[]).reduce((s,a)=>s+(a.amount||0),0);}
+function loanRem(l){return Math.max(0,(l.total||0)-loanPaid(l));}
+function loanSectionHTML(){
+  const loans=(DB.loans||[]);
+  const owe=loans.filter(l=>!l.done&&l.dir!=='owed');
+  const totalRem=owe.reduce((s,l)=>s+loanRem(l),0);
+  let h=svcHead('coins','Deudas',(owe.length?'<span class="tnum" style="color:var(--danger);font-size:13px">$'+fmt(totalRem)+'</span>':''));
+  h+='<div class="msub" style="margin:-5px 2px 12px">Deudas grandes que vas pagando poco a poco</div>';
+  if(!loans.length){return h+svcAddCard("openLoanForm()","Registrar una deuda","Ej: <b>$240,000 del carro a tu mamá</b>. Vas abonando y ves cuánto te falta.");}
+  h+='<div style="display:flex;flex-direction:column;gap:11px;margin-bottom:8px">';
+  loans.slice().sort((a,b)=>(a.done?1:0)-(b.done?1:0)).forEach(l=>{
+    const rem=loanRem(l),paid=loanPaid(l),pct=l.total?Math.min(100,Math.round(paid/l.total*100)):0,owed=l.dir==='owed';
+    h+='<div class="panel tap" style="padding:14px" onclick="openLoanDetail(\''+l.id+'\')">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div style="min-width:0"><div style="font-weight:700;font-size:15px">'+(l.concept||'Deuda')+'</div><div style="color:var(--mut);font-size:12.5px;margin-top:2px">'+(owed?'Me debe ':'A ')+(l.who||'—')+'</div></div><div style="text-align:right;flex-shrink:0"><div class="tnum" style="font-weight:800;font-size:17px;color:'+(l.done?'#36d399':(owed?'#36d399':'var(--danger)'))+'">'+(l.done?'Saldada ✓':'$'+fmt(rem))+'</div>'+(l.done?'':'<div style="color:var(--mut);font-size:11.5px;margin-top:1px">de $'+fmt(l.total)+'</div>')+'</div></div>';
+    h+='<div class="pbar" style="margin-top:11px"><i style="width:'+pct+'%"></i></div>';
+    h+='<div style="color:var(--mut);font-size:11.5px;margin-top:6px">'+(l.done?'Pagada completa 🎉':'Llevas $'+fmt(paid)+' · '+pct+'%')+'</div>';
+    h+='</div>';
+  });
+  h+='</div><button class="btn ghost" style="margin-top:0" onclick="openLoanForm()">'+ic('plus')+'Agregar deuda</button>';
+  return h;
+}
+function openLoanForm(id){
+  const l=id?(DB.loans||[]).find(x=>x.id===id):null;
+  pickLoanDir=l?(l.dir||'owe'):'owe';
+  const today=(l&&l.date)?l.date.slice(0,10):new Date().toISOString().slice(0,10);
+  const eA=s=>String(s||'').replace(/"/g,'&quot;'),eT=s=>String(s||'').replace(/</g,'&lt;');
+  openModal('<h3>'+(l?'Editar deuda':'Nueva deuda')+'</h3><div class="msub">Una deuda grande que vas pagando poco a poco</div>'+
+   '<div class="field"><label>¿De qué tipo?</label><div class="picker" style="grid-template-columns:1fr 1fr" id="loan-dir"><div class="pick '+(pickLoanDir==='owe'?'on':'')+'" data-d="owe">'+ic('up',20)+'Yo debo</div><div class="pick '+(pickLoanDir==='owed'?'on':'')+'" data-d="owed">'+ic('down',20)+'Me deben</div></div></div>'+
+   '<div class="field"><label>¿Qué es?</label><input id="loan-concept" placeholder="Ej: Carro" value="'+eA(l?l.concept:'')+'"></div>'+
+   '<div class="field"><label>¿A quién / quién?</label><input id="loan-who" placeholder="Ej: mi mamá" value="'+eA(l?l.who:'')+'"></div>'+
+   '<div class="field two"><div><label>Monto total</label><input id="loan-total" inputmode="decimal" placeholder="0" value="'+(l?l.total:'')+'"></div><div><label>Desde</label><input id="loan-date" type="date" value="'+today+'"></div></div>'+
+   '<div class="field"><label>Nota (opcional)</label><textarea id="loan-note" placeholder="Ej: pago lo que pueda cada mes">'+eT(l?l.note:'')+'</textarea></div>'+
+   '<button class="btn" onclick="saveLoan(\''+(l?l.id:'')+'\')">'+ic('check')+(l?'Guardar':'Crear deuda')+'</button>'+(l?'<div class="del" onclick="delLoan(\''+l.id+'\')">'+ic('trash',17)+'Eliminar deuda</div>':''));
+  $('#loan-dir').querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickLoanDir=el.dataset.d;$('#loan-dir').querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
+}
+function saveLoan(id){const concept=$('#loan-concept').value.trim(),who=$('#loan-who').value.trim(),total=num($('#loan-total').value);if(!total){toast('Escribe el monto total');return;}
+  const dstr=$('#loan-date').value,date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString(),note=$('#loan-note').value.trim();
+  DB.loans=DB.loans||[];
+  if(id){const l=DB.loans.find(x=>x.id===id);if(l){Object.assign(l,{concept,who,total,dir:pickLoanDir,note,date});l.done=loanRem(l)<=0&&loanPaid(l)>0;}}
+  else DB.loans.push({id:uid(),concept,who,total,dir:pickLoanDir,note,date,abonos:[],done:false});
+  save();closeModal();toast('Guardado');renderAll();
+}
+function delLoan(id){DB.loans=(DB.loans||[]).filter(x=>x.id!==id);save();closeModal();toast('Deuda eliminada');renderAll();}
+function openLoanDetail(id){
+  const l=(DB.loans||[]).find(x=>x.id===id);if(!l)return;
+  const rem=loanRem(l),paid=loanPaid(l),pct=l.total?Math.min(100,Math.round(paid/l.total*100)):0,owed=l.dir==='owed';
+  const ab=(l.abonos||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let h='<h3 style="margin-bottom:2px">'+(l.concept||'Deuda')+'</h3><div class="msub" style="margin-bottom:16px">'+(owed?'Me debe ':'A ')+(l.who||'—')+(l.note?' · '+l.note.replace(/</g,'&lt;'):'')+'</div>';
+  h+='<div class="panel" style="text-align:center;padding:18px 16px;margin-bottom:14px"><div style="color:var(--mut);font-size:12.5px;margin-bottom:4px">'+(l.done?'Saldada':(owed?'Te falta cobrar':'Te falta'))+'</div><div class="tnum" style="font-size:32px;font-weight:800;color:'+(l.done?'#36d399':(owed?'#36d399':'var(--danger)'))+'">'+(l.done?'$0':'$'+fmt(rem))+'</div><div style="color:var(--mut);font-size:12px;margin-top:3px">de $'+fmt(l.total)+'</div><div class="pbar" style="margin-top:13px"><i style="width:'+pct+'%"></i></div><div style="color:var(--mut);font-size:11.5px;margin-top:7px">'+(owed?'Te han pagado ':'Has pagado ')+'$'+fmt(paid)+' · '+pct+'%</div></div>';
+  h+='<button class="btn" onclick="openAbonoForm(\''+l.id+'\')">'+ic('plus')+(owed?'Registrar pago recibido':'Registrar un abono')+'</button>';
+  if(ab.length){h+='<div class="label" style="margin:18px 2px 8px">'+(owed?'Pagos recibidos':'Abonos')+'</div><div class="panel" style="padding:4px 14px">';
+    ab.forEach(a=>{h+='<div class="row-item"><div class="ci" style="background:rgba(54,211,153,.15);color:#36d399">'+ic('down',20)+'</div><div class="ti"><div class="a">$'+fmt2(a.amount)+'</div><div class="b">'+new Date(a.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'})+(a.note?' · '+a.note.replace(/</g,'&lt;'):'')+'</div></div><button class="svc-check" onclick="delAbono(\''+l.id+'\',\''+a.id+'\')">'+ic('trash',15)+'</button></div>';});
+    h+='</div>';}
+  else h+='<div style="text-align:center;color:var(--mut);font-size:12.5px;margin-top:16px">Aún no registras '+(owed?'pagos':'abonos')+'.</div>';
+  h+='<div class="del" style="margin-top:18px" onclick="openLoanForm(\''+l.id+'\')">'+ic('pencil',16)+'Editar deuda</div>';
+  openModal(h);
+}
+function openAbonoForm(loanId){
+  const today=new Date().toISOString().slice(0,10);
+  openModal('<h3>Registrar abono</h3><div class="msub">¿Cuánto pagaste de esta deuda?</div>'+
+   '<div class="field two"><div><label>Monto</label><input id="ab-amt" inputmode="decimal" placeholder="0"></div><div><label>Fecha</label><input id="ab-date" type="date" value="'+today+'"></div></div>'+
+   '<div class="field"><label>Nota (opcional)</label><input id="ab-note" placeholder="Ej: con el aguinaldo"></div>'+
+   '<button class="btn" onclick="saveAbono(\''+loanId+'\')">'+ic('check')+'Guardar abono</button>'+
+   '<div class="del" onclick="openLoanDetail(\''+loanId+'\')">'+ic('back',16)+'Volver</div>');
+}
+function saveAbono(loanId){const l=(DB.loans||[]).find(x=>x.id===loanId);if(!l)return;
+  const amt=num($('#ab-amt').value);if(!amt){toast('Escribe el monto');return;}
+  const dstr=$('#ab-date').value,date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString(),note=$('#ab-note').value.trim();
+  l.abonos=l.abonos||[];l.abonos.push({id:uid(),amount:amt,date,note});
+  const done=loanRem(l)<=0;l.done=done;
+  save();toast(done?'¡Deuda saldada! 🎉':'Abono registrado ✓');renderSvc();openLoanDetail(loanId);
+}
+function delAbono(loanId,abId){const l=(DB.loans||[]).find(x=>x.id===loanId);if(!l)return;
+  l.abonos=(l.abonos||[]).filter(a=>a.id!==abId);l.done=loanRem(l)<=0&&loanPaid(l)>0;
+  save();toast('Abono eliminado');renderSvc();openLoanDetail(loanId);
+}
 function paySvc(id){const s=DB.services.find(x=>x.id===id);if(!s)return;
   if(svcPaid(s)){if(s.paidExp)DB.expenses=DB.expenses.filter(e=>e.id!==s.paidExp);s.paidMonth=null;s.paidExp=null;toast('Marcado como no pagado');}
   else{s.paidMonth=monthKey();if((s.amount||0)>0){const eid=uid();DB.expenses.push({id:eid,amount:s.amount,cardId:null,category:SVC2CAT[s.section]||'otros',note:s.name,months:1,date:new Date().toISOString(),createdAt:Date.now()});s.paidExp=eid;toast('Pagado ✓ · registrado como gasto');}else toast('Servicio pagado ✓');}
