@@ -878,7 +878,10 @@ const monthKeyOf=dt=>{const n=new Date(dt);return n.getFullYear()+'-'+n.getMonth
 const schedGotThisMonth=s=>DB.incomes.some(i=>i.schedId===s.id&&monthKeyOf(i.date)===monthKey());
 const svcPaid=s=>s.paidMonth===monthKey();
 const SVC_PRESETS=[{n:'Luz',sec:'casa'},{n:'Agua',sec:'casa'},{n:'Gas',sec:'casa'},{n:'Internet',sec:'casa'},{n:'Renta',sec:'casa'},{n:'Teléfono',sec:'casa'},{n:'Tenencia',sec:'auto'},{n:'Verificación',sec:'auto'},{n:'Seguro auto',sec:'auto'},{n:'Netflix',sec:'suscrip'},{n:'Spotify',sec:'suscrip'},{n:'Gym',sec:'salud'},{n:'Predial',sec:'impuestos'},{n:'ISR / SAT',sec:'impuestos'},{n:'Tenencia',sec:'impuestos'},{n:'Agua',sec:'impuestos'},{n:'Impuestos',sec:'impuestos'}];
-function save(){localStorage.setItem('finanzas_v1',JSON.stringify(DB));}
+let _cloudT=null;
+function save(){localStorage.setItem('finanzas_v1',JSON.stringify(DB));if(DB.settings&&DB.settings.cloud){clearTimeout(_cloudT);_cloudT=setTimeout(cloudSave,2500);}}
+function cloudData(){const d=JSON.parse(JSON.stringify(DB));(d.expenses||[]).forEach(e=>{if(e.ticket)e.ticket=null;});(d.incomes||[]).forEach(e=>{if(e.ticket)e.ticket=null;});return d;}
+function cloudSave(){const c=DB.settings&&DB.settings.cloud;if(!c)return;fetch(PUSH_API+'/api/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',email:c.email,pin:c.pin,data:cloudData()})}).then(r=>r.json()).then(j=>{if(j&&j.ok)DB.settings.cloudTs=Date.now();}).catch(()=>{});}
 function uid(){return Math.random().toString(36).slice(2,10);}
 const fmt=n=>Number(n).toLocaleString('es-MX',{maximumFractionDigits:0});
 const fmt2=n=>Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1879,6 +1882,18 @@ function renderSettings(){
   h+='<div class="set-row"><div class="si">'+ic('receipt')+'</div><div class="stt"><div class="a">Servicios</div><div class="b">Luz, agua, tenencia…</div></div>'+swHTML(s.notif.servicios!==false,"toggleNotif('servicios')")+'</div>';
   h+='<div class="set-row"><div class="si">'+ic('bell')+'</div><div class="stt"><div class="a">Días de anticipación</div><div class="b">Con cuántos días avisarte</div></div><select onchange="setNotifDias(this.value)">'+[1,2,3,5,7].map(d=>'<option value="'+d+'" '+(s.notif.dias===d?'selected':'')+'>'+d+' día'+(d>1?'s':'')+'</option>').join('')+'</select></div>';
   h+='</div><div class="hint" style="margin:9px 4px 0">En iPhone, agrega la app a tu pantalla de inicio para recibir las notificaciones push.</div></div>';
+  const cl=s.cloud;
+  h+='<div class="set-sec"><div class="label">Respaldo en la nube</div><div class="set-card">';
+  if(cl){
+    h+='<div class="set-row"><div class="si" style="color:#36d399">'+ic('wallet')+'</div><div class="stt"><div class="a">Activo · '+cl.email+'</div><div class="b">Se respalda solo al guardar cambios</div></div></div>';
+    h+='<div class="set-row tap" onclick="cloudSaveNow()"><div class="si">'+ic('up')+'</div><div class="stt"><div class="a">Respaldar ahora</div><div class="b">Sube tus datos al instante</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
+    h+='<div class="set-row tap" onclick="openCloudRestore()"><div class="si">'+ic('down')+'</div><div class="stt"><div class="a">Restaurar de la nube</div><div class="b">Trae tus datos guardados</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
+    h+='<div class="set-row tap" onclick="deactivateCloud()"><div class="si danger">'+ic('x')+'</div><div class="stt"><div class="a" style="color:var(--danger)">Desactivar respaldo</div><div class="b">Deja de subir a la nube</div></div></div>';
+  }else{
+    h+='<div class="set-row tap" onclick="openCloudSetup()"><div class="si">'+ic('wallet')+'</div><div class="stt"><div class="a">Activar respaldo en la nube</div><div class="b">Para no perder tus datos si borras la app</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
+    h+='<div class="set-row tap" onclick="openCloudRestore()"><div class="si">'+ic('down')+'</div><div class="stt"><div class="a">Restaurar de la nube</div><div class="b">¿Cambiaste de cel o reinstalaste? Tráelos</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
+  }
+  h+='</div></div>';
   h+='<div class="set-sec"><div class="label">Datos</div><div class="set-card">';
   h+='<div class="set-row tap" onclick="exportData()"><div class="si">'+ic('down')+'</div><div class="stt"><div class="a">Descargar respaldo</div><div class="b">Guarda un archivo con toda tu info</div></div><div class="chev">'+ic('chevR',18)+'</div></div>';
   h+='<div class="set-row tap" onclick="confirmWipe()"><div class="si danger">'+ic('trash')+'</div><div class="stt"><div class="a" style="color:var(--danger)">Borrar todos los datos</div><div class="b">Empieza de cero</div></div></div>';
@@ -1899,6 +1914,37 @@ function setBg(id){if(!DB.settings.premium){openPremium();return;}DB.settings.bg
 function toggleLock(){const on=DB.settings.lockOnOpen!==false&&!!DB.settings.pin;if(on){DB.settings.lockOnOpen=false;save();toast('Tu sesión quedará abierta');renderSettings();}else{if(!DB.settings.pin){toast('Crea un PIN para activarlo');changePin();return;}DB.settings.lockOnOpen=true;save();toast('Pedirá PIN al abrir');renderSettings();}}
 function changePin(){hideOverlay('settings');setTimeout(()=>startPinSetup('settings'),350);}
 function exportData(){try{const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mis-finanzas-respaldo.json';document.body.appendChild(a);a.click();a.remove();toast('Respaldo descargado');}catch(e){toast('No se pudo exportar');}}
+function openCloudSetup(){
+  openModal('<h3>Respaldo en la nube</h3><div class="msub">Tus datos se guardan en internet con tu correo y un PIN, para que no los pierdas aunque borres la app o cambies de celular.</div><div class="field"><label>Correo</label><input id="cl-email" type="email" inputmode="email" autocapitalize="off" placeholder="tucorreo@ejemplo.com" value="'+((DB.settings.cloud&&DB.settings.cloud.email)||DB.settings.email||'')+'"></div><div class="field"><label>PIN de respaldo (4 o más dígitos)</label><input id="cl-pin" inputmode="numeric" placeholder="••••"></div><div class="hint" style="margin-bottom:14px">⚠️ Anota bien tu correo y PIN: los necesitarás para restaurar en otro celular.</div><button class="btn" onclick="activateCloud()">'+ic('check')+'Activar respaldo</button>');
+}
+async function activateCloud(){const email=$('#cl-email').value.trim().toLowerCase(),pin=$('#cl-pin').value.trim();
+  if(!email||email.indexOf('@')<0){toast('Escribe un correo válido');return;}
+  if(pin.length<4){toast('El PIN debe tener 4+ dígitos');return;}
+  toast('Activando…');
+  try{const r=await fetch(PUSH_API+'/api/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',email,pin,data:cloudData()})});const j=await r.json().catch(()=>({}));
+    if(r.status===403){toast('Ese correo ya tiene respaldo con otro PIN');return;}
+    if(!r.ok||!j.ok){toast('No se pudo activar');return;}
+    DB.settings.cloud={email,pin};DB.settings.cloudTs=Date.now();save();closeModal();toast('Respaldo en la nube activado ✓');renderSettings();
+  }catch(e){toast('Error de conexión');}
+}
+function cloudSaveNow(){const c=DB.settings.cloud;if(!c)return;toast('Respaldando…');
+  fetch(PUSH_API+'/api/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',email:c.email,pin:c.pin,data:cloudData()})}).then(r=>r.json()).then(j=>{toast(j&&j.ok?'Respaldo guardado ✓':'No se pudo');}).catch(()=>toast('Error de conexión'));}
+function openCloudRestore(){
+  openModal('<h3>Restaurar de la nube</h3><div class="msub">Trae los datos que respaldaste. <b>Reemplazará</b> lo que tengas ahora en este celular.</div><div class="field"><label>Correo</label><input id="cr-email" type="email" inputmode="email" autocapitalize="off" placeholder="tucorreo@ejemplo.com" value="'+((DB.settings.cloud&&DB.settings.cloud.email)||'')+'"></div><div class="field"><label>PIN de respaldo</label><input id="cr-pin" inputmode="numeric" placeholder="••••"></div><button class="btn" onclick="cloudRestore()">'+ic('down',18)+'Restaurar mis datos</button>');
+}
+async function cloudRestore(){const email=$('#cr-email').value.trim().toLowerCase(),pin=$('#cr-pin').value.trim();
+  if(!email||!pin){toast('Escribe correo y PIN');return;}
+  toast('Buscando respaldo…');
+  try{const r=await fetch(PUSH_API+'/api/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',email,pin})});
+    if(r.status===404){toast('No hay respaldo con ese correo');return;}
+    if(r.status===403){toast('PIN incorrecto');return;}
+    const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok||!j.data){toast('No se pudo restaurar');return;}
+    const nd=j.data;nd.settings=nd.settings||{};nd.settings.cloud={email,pin};
+    localStorage.setItem('finanzas_v1',JSON.stringify(nd));
+    toast('¡Datos restaurados! 🎉');setTimeout(()=>location.reload(),900);
+  }catch(e){toast('Error de conexión');}
+}
+function deactivateCloud(){DB.settings.cloud=null;save();toast('Respaldo desactivado');renderSettings();}
 function confirmWipe(){openModal('<h3>¿Borrar todo?</h3><div class="msub">Se eliminarán tarjetas, gastos, ingresos, ahorros, inversiones y servicios. No se puede deshacer.</div><button class="btn" style="background:var(--danger);box-shadow:none;color:#fff" onclick="doWipe()">'+ic('trash')+'Sí, borrar todo</button><div class="del" style="color:var(--mut)" onclick="closeModal()">Cancelar</div>');}
 function doWipe(){localStorage.removeItem('finanzas_v1');location.reload();}
 function pickPhoto(){$('#photo-input').click();}
