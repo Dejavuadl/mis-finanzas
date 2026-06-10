@@ -72,6 +72,9 @@ html.light #bgfx b{mix-blend-mode:multiply;opacity:.4;}
 html.light #bgfx:after{mix-blend-mode:multiply;}
 html.light #bgfx.burbujas:after{opacity:.95;}
 html.light #bgfx.puntos:after{opacity:1;background-image:radial-gradient(circle,rgba(var(--accrgb),.32) 1.7px,transparent 2.5px);background-size:26px 26px;}
+html.light .addcard{background:rgba(255,255,255,.62);}
+html.light[data-screen="servicios"] #bgfx.puntos:after{opacity:.45;}
+html.light[data-screen="servicios"] #bgfx.malla:after,html.light[data-screen="servicios"] #bgfx.burbujas:after{opacity:.5;}
 html.light #bgfx.malla:after{opacity:.95;}
 html.light .hero .big{background:linear-gradient(135deg,var(--gold),var(--gold-d));-webkit-background-clip:text;background-clip:text;}
 html.light .prembanner{background:linear-gradient(135deg,rgba(var(--accrgb),.16),rgba(var(--accrgb),.05));}
@@ -226,7 +229,7 @@ body{
 .svc-seclbl svg{width:14px;height:14px;opacity:.8;}
 .svc-ico{width:34px;height:34px;border-radius:10px;background:var(--icobg);color:var(--icofg);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
 .svc-ico svg{width:18px;height:18px;}
-.addcard{border:1.6px dashed var(--line2);border-radius:18px;padding:20px 18px;text-align:center;cursor:pointer;transition:transform .14s,background .18s;margin-bottom:6px;background:rgba(var(--accrgb),.035);}
+.addcard{border:1.6px dashed var(--line2);border-radius:18px;padding:20px 18px;text-align:center;cursor:pointer;transition:transform .14s,background .18s;margin-bottom:6px;background:rgba(var(--accrgb),.035);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);}
 .addcard:active{transform:scale(.99);background:rgba(var(--accrgb),.07);}
 .addcard .acp{width:46px;height:46px;border-radius:14px;background:var(--icobg);color:var(--icofg);display:flex;align-items:center;justify-content:center;margin:0 auto 11px;}
 .addcard .act{font-weight:700;font-size:15px;font-family:'Outfit',sans-serif;}
@@ -1586,7 +1589,7 @@ function openCaptureAttach(ctx,hostId,fixedCard){
 const NAVITEMS=[['home','Inicio','home'],['exp','Balance','swap'],['cards','Tarjetas','card'],['svc','Servicios','receipt'],['save','Cartera','wallet'],['cal','Agenda','cal']];
 $('#nav').innerHTML='<div id="nav-pill"></div>'+NAVITEMS.map((n,i)=>'<button class="'+(i===0?'on':'')+'" data-go="'+n[0]+'">'+ic(n[2])+n[1]+'</button>').join('');
 function moveNavPill(){const b=$('.nav button.on'),pill=$('#nav-pill');if(b&&pill){pill.style.width=b.offsetWidth+'px';pill.style.left=b.offsetLeft+'px';}}
-function go(name){$$('.screen').forEach(s=>s.classList.remove('active'));$('#s-'+name).classList.add('active');$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name));moveNavPill();const a=$('#app');if(a)a.scrollTop=0;renderAll();}
+function go(name){$$('.screen').forEach(s=>s.classList.remove('active'));$('#s-'+name).classList.add('active');document.documentElement.setAttribute('data-screen',name);$$('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===name));moveNavPill();const a=$('#app');if(a)a.scrollTop=0;renderAll();}
 $$('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.go));
 window.addEventListener('resize',moveNavPill);
 document.addEventListener('gesturestart',e=>e.preventDefault());
