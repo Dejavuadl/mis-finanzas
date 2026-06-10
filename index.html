@@ -478,6 +478,15 @@ body{
 #bgfx.malla .b1,#bgfx.burbujas .b1,#bgfx.puntos .b1{width:72vw;height:72vw;top:-15%;left:-15%;animation:au1 14s ease-in-out infinite;}
 #bgfx.malla .b2,#bgfx.burbujas .b2,#bgfx.puntos .b2{width:66vw;height:66vw;top:15%;right:-20%;left:auto;animation:au3 17s ease-in-out infinite;}
 #bgfx.malla .b3,#bgfx.burbujas .b3,#bgfx.puntos .b3{width:76vw;height:76vw;bottom:-20%;left:15%;top:auto;animation:au2 20s ease-in-out infinite;}
+/* Aurora boreal (cortinas) */
+#bgfx.boreal b{border-radius:0;mix-blend-mode:screen;filter:blur(36px);opacity:.85;}
+#bgfx.boreal .b1{width:60vw;height:160vh;top:-45%;left:-12%;transform:rotate(9deg);animation:bor1 13s ease-in-out infinite;}
+#bgfx.boreal .b2{width:50vw;height:160vh;top:-45%;left:28%;transform:rotate(-7deg);animation:bor2 17s ease-in-out infinite;}
+#bgfx.boreal .b3{width:54vw;height:160vh;top:-45%;left:58%;transform:rotate(11deg);animation:bor3 21s ease-in-out infinite;}
+#bgfx.boreal:after{opacity:1;background:radial-gradient(120% 60% at 50% 0%,rgba(var(--acc2rgb),.16),transparent 55%);}
+@keyframes bor1{0%,100%{transform:rotate(9deg) translateX(0) scaleY(1);opacity:.65;}50%{transform:rotate(3deg) translateX(13vw) scaleY(1.18);opacity:.95;}}
+@keyframes bor2{0%,100%{transform:rotate(-7deg) translateX(0) scaleY(1);opacity:.55;}50%{transform:rotate(-13deg) translateX(-11vw) scaleY(1.22);opacity:.9;}}
+@keyframes bor3{0%,100%{transform:rotate(11deg) translateX(0) scaleY(1);opacity:.5;}50%{transform:rotate(5deg) translateX(9vw) scaleY(1.12);opacity:.85;}}
 /* Texturas encima del color */
 #bgfx:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;}
 #bgfx.burbujas:after{opacity:.6;background-image:radial-gradient(circle at 50% 50%,transparent 17px,rgba(var(--acc2rgb),.28) 18px 19px,transparent 20px),radial-gradient(circle at 50% 50%,transparent 9px,rgba(var(--accrgb),.22) 10px 11px,transparent 12px);background-size:170px 170px,95px 95px;background-position:0 0,48px 32px;animation:bub 15s linear infinite;}
@@ -956,12 +965,16 @@ const THEMES=[
  {id:'grafito',name:'Grafito',c1:'#52525b',c2:'#a1a1aa',c3:'#e4e4e7'},
 ];
 const hexRgb=h=>{const n=parseInt(h.slice(1),16);return (n>>16&255)+','+(n>>8&255)+','+(n&255);};
-const BGS=[{id:'aurora',name:'Aurora'},{id:'seda',name:'Seda'},{id:'malla',name:'Malla'},{id:'burbujas',name:'Burbujas'},{id:'puntos',name:'Puntos'},{id:'solido',name:'Sólido'}];
+const BGS=[{id:'aurora',name:'Aurora'},{id:'boreal',name:'Boreal'},{id:'seda',name:'Seda'},{id:'malla',name:'Malla'},{id:'burbujas',name:'Burbujas'},{id:'puntos',name:'Puntos'},{id:'solido',name:'Sólido'}];
 function applyBg(style){const prem=!!DB.settings.premium;if(!prem)style='solido';const t=THEMES.find(x=>x.id===(prem?(DB.settings.theme||'oro'):'oro'))||THEMES[0],bg=$('#bgfx');if(!bg)return;bg.className=style;bg.style.background=style==='solido'?'radial-gradient(120% 55% at 50% -8%,'+hexA(t.c2,.10)+',transparent 52%)':'';const bl=bg.querySelectorAll('b');
  if(style==='seda'){
   if(bl[0])bl[0].style.background='radial-gradient(ellipse at 35% 40%,'+hexA(t.c3,.92)+','+hexA(t.c2,.55)+' 45%,transparent 75%)';
   if(bl[1])bl[1].style.background='radial-gradient(ellipse,'+hexA(t.c2,.8)+',transparent 68%)';
   if(bl[2])bl[2].style.background='radial-gradient(ellipse,'+hexA(t.c1,.78)+',transparent 68%)';
+ }else if(style==='boreal'){
+  if(bl[0])bl[0].style.background='linear-gradient(175deg,transparent 0%,'+hexA(t.c3,.85)+' 40%,'+hexA(t.c2,.45)+' 62%,transparent 90%)';
+  if(bl[1])bl[1].style.background='linear-gradient(175deg,transparent 6%,rgba(46,230,200,.7) 44%,rgba(46,230,200,.2) 64%,transparent 88%)';
+  if(bl[2])bl[2].style.background='linear-gradient(175deg,transparent 2%,rgba(128,98,255,.62) 46%,transparent 90%)';
  }else{
   if(bl[0])bl[0].style.background='radial-gradient(circle,'+hexA(t.c2,.85)+',transparent 64%)';
   if(bl[1])bl[1].style.background='radial-gradient(circle,'+hexA(t.c1,.8)+',transparent 64%)';
