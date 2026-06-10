@@ -705,6 +705,7 @@ const P = {
   x:'<path d="M18 6 6 18M6 6l12 12"/>',
   move:'<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
   trendup:'<path d="M3 17l6-6 4 4 7-7"/><path d="M17 7h4v4"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
   pie:'<path d="M12 3v9l6.5 6.5A9 9 0 1 1 12 3z"/><path d="M16 3.5A9 9 0 0 1 20.5 8H12z"/>',
 };
@@ -1199,19 +1200,31 @@ function renderBalance(){
 }
 function renderSvc(){
   $('#add-svc-btn').innerHTML=ic('plus')+'Agregar servicio';
-  const box=$('#svc-list'),sum=$('#svc-summary');
-  if(!DB.services.length){sum.innerHTML='';box.innerHTML='<div class="empty"><div class="e">'+ic('receipt',30)+'</div><p>Agrega tus pagos fijos (luz, agua, tenencia, internet…) con el día que tocan y nunca se te pasen.</p></div>';return;}
-  const totM=DB.services.reduce((s,x)=>s+(x.amount||0),0);
-  sum.innerHTML='<div class="panel" style="display:flex;justify-content:space-between;align-items:center"><div><div class="label" style="margin:0">Pagos fijos al mes</div><div class="tnum" style="font-size:23px;font-weight:800;margin-top:5px">$'+fmt(totM)+'</div></div><div style="color:var(--mut);font-size:13px" class="tnum">'+DB.services.length+' servicios</div></div>';
+  const box=$('#svc-list'),sum=$('#svc-summary'),debts=DB.debts||[];
+  if(DB.services.length){const totM=DB.services.reduce((s,x)=>s+(x.amount||0),0);
+    sum.innerHTML='<div class="panel" style="display:flex;justify-content:space-between;align-items:center"><div><div class="label" style="margin:0">Pagos fijos al mes</div><div class="tnum" style="font-size:23px;font-weight:800;margin-top:5px">$'+fmt(totM)+'</div></div><div style="color:var(--mut);font-size:13px" class="tnum">'+DB.services.length+' servicios</div></div>';
+  }else sum.innerHTML='';
   let html='';
-  SVCS.forEach(sec=>{
-    const items=DB.services.filter(s=>s.section===sec.id).sort((a,b)=>(a.day||32)-(b.day||32));
-    if(!items.length)return;
-    html+='<div class="sect"><h2 style="display:flex;align-items:center;gap:9px;font-size:15px">'+ic(sec.i,17)+sec.name+'</h2></div><div class="panel" style="padding:4px 14px">';
-    items.forEach(s=>{const du=s.day?daysUntil(nextDate(s.day)):null,w=du!=null?whenLabel(du):null,paid=svcPaid(s);
-      html+='<div class="row-item" onclick="editSvc(\''+s.id+'\')"><div class="ci">'+ic(sec.i,20)+'</div><div class="ti"><div class="a">'+s.name+'</div><div class="b">'+(paid?'<span style="color:#36d399;font-weight:600">Pagado este mes ✓</span>':'Día '+(s.day||'–')+' de cada mes')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div>'+(s.amount?'<div class="amt tnum">$'+fmt(s.amount)+'</div>':'')+(!paid&&w?'<div class="when '+w.c+'" style="margin-top:4px;display:inline-block">'+w.t+'</div>':'')+'</div><button class="svc-check'+(paid?' on':'')+'" onclick="event.stopPropagation();paySvc(\''+s.id+'\')">'+ic('check',16)+'</button></div></div>';});
-    html+='</div>';
-  });
+  if(DB.services.length){
+    SVCS.forEach(sec=>{
+      const items=DB.services.filter(s=>s.section===sec.id).sort((a,b)=>(a.day||32)-(b.day||32));
+      if(!items.length)return;
+      html+='<div class="sect"><h2 style="display:flex;align-items:center;gap:9px;font-size:15px">'+ic(sec.i,17)+sec.name+'</h2></div><div class="panel" style="padding:4px 14px">';
+      items.forEach(s=>{const du=s.day?daysUntil(nextDate(s.day)):null,w=du!=null?whenLabel(du):null,paid=svcPaid(s);
+        html+='<div class="row-item" onclick="editSvc(\''+s.id+'\')"><div class="ci">'+ic(sec.i,20)+'</div><div class="ti"><div class="a">'+s.name+'</div><div class="b">'+(paid?'<span style="color:#36d399;font-weight:600">Pagado este mes ✓</span>':'Día '+(s.day||'–')+' de cada mes')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div>'+(s.amount?'<div class="amt tnum">$'+fmt(s.amount)+'</div>':'')+(!paid&&w?'<div class="when '+w.c+'" style="margin-top:4px;display:inline-block">'+w.t+'</div>':'')+'</div><button class="svc-check'+(paid?' on':'')+'" onclick="event.stopPropagation();paySvc(\''+s.id+'\')">'+ic('check',16)+'</button></div></div>';});
+      html+='</div>';
+    });
+  }else html+='<div class="empty" style="padding:22px 16px 6px"><div class="e">'+ic('receipt',30)+'</div><p>Agrega tus pagos fijos (luz, agua, tenencia, internet…) con el día que tocan.</p></div>';
+  // Sección personal (dinero entre personas)
+  html+='<div class="sect" style="margin-top:22px"><h2 style="display:flex;align-items:center;gap:9px;font-size:15px">'+ic('users',17)+'Personales · dinero entre personas</h2></div>';
+  const act=debts.filter(d=>!d.settled),oweT=act.filter(d=>d.dir==='owe').reduce((s,d)=>s+(d.amount||0),0),owedT=act.filter(d=>d.dir==='owed').reduce((s,d)=>s+(d.amount||0),0);
+  if(oweT||owedT)html+='<div class="panel" style="display:flex;gap:14px;margin-bottom:10px"><div style="flex:1"><div class="label" style="margin:0 0 5px">Yo debo</div><div class="tnum" style="font-size:18px;font-weight:800;color:var(--danger)">$'+fmt(oweT)+'</div></div><div style="flex:1;border-left:1px solid var(--line);padding-left:14px"><div class="label" style="margin:0 0 5px">Me deben</div><div class="tnum" style="font-size:18px;font-weight:800;color:#36d399">$'+fmt(owedT)+'</div></div></div>';
+  if(!debts.length)html+='<div class="panel" style="text-align:center;color:var(--mut);font-size:13px;line-height:1.5;padding:16px">Anota dinero informal entre personas.<br>Ej: <b>"le debo $500 a Adrián"</b> o <b>"Juan me debe $1,000"</b>.</div>';
+  else{html+='<div class="panel" style="padding:4px 14px">';
+    debts.slice().sort((a,b)=>(a.settled?1:0)-(b.settled?1:0)).forEach(d=>{const owe=d.dir==='owe',col=owe?'var(--danger)':'#36d399',sub=d.settled?'Saldado ✓':(d.note||(d.date?new Date(d.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'}):'')||'Pendiente');
+      html+='<div class="row-item" onclick="openDebtForm(\''+d.id+'\')"><div class="ci" style="background:'+(owe?'var(--danger-s)':'rgba(54,211,153,.15)')+';color:'+col+'">'+ic(owe?'up':'down',20)+'</div><div class="ti"><div class="a"'+(d.settled?' style="text-decoration:line-through;opacity:.55"':'')+'>'+(owe?'Le debo a ':'Me debe ')+(d.who||'alguien')+'</div><div class="b">'+sub+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div class="amt tnum" style="color:'+(d.settled?'var(--mut)':col)+'">$'+fmt2(d.amount)+'</div><button class="svc-check'+(d.settled?' on':'')+'" onclick="event.stopPropagation();toggleDebt(\''+d.id+'\')">'+ic('check',16)+'</button></div></div>';});
+    html+='</div>';}
+  html+='<button class="btn ghost" style="margin-top:10px" onclick="openDebtForm()">'+ic('plus')+'Anotar dinero personal</button>';
   box.innerHTML=html;
 }
 
@@ -1494,6 +1507,30 @@ function openSvcForm(svc){
 }
 function saveSvc(id){const name=$('#v-name').value.trim()||'Servicio',day=clampDay($('#v-day').value),amount=num($('#v-amt').value);if(id){const s=DB.services.find(x=>x.id===id);Object.assign(s,{name,section:pickSvcSec,day,amount});}else DB.services.push({id:uid(),name,section:pickSvcSec,day,amount});save();closeModal();toast('Servicio guardado');renderAll();}
 function delSvc(id){DB.services=DB.services.filter(s=>s.id!==id);save();closeModal();toast('Servicio eliminado');renderAll();}
+/* ===== Dinero personal (deudas informales) ===== */
+let pickDebtDir='owe';
+function openDebtForm(id){
+  const d=id?(DB.debts||[]).find(x=>x.id===id):null;
+  pickDebtDir=d?d.dir:'owe';
+  const today=(d&&d.date)?d.date.slice(0,10):new Date().toISOString().slice(0,10);
+  const eA=s=>String(s||'').replace(/"/g,'&quot;'),eT=s=>String(s||'').replace(/</g,'&lt;');
+  openModal('<h3>'+(d?'Editar':'Dinero personal')+'</h3><div class="msub">Lo que le debes a alguien o lo que te deben</div>'+
+   '<div class="field"><label>¿Qué pasó?</label><div class="picker" style="grid-template-columns:1fr 1fr" id="debt-dir"><div class="pick '+(pickDebtDir==='owe'?'on':'')+'" data-d="owe">'+ic('up',20)+'Yo debo</div><div class="pick '+(pickDebtDir==='owed'?'on':'')+'" data-d="owed">'+ic('down',20)+'Me deben</div></div></div>'+
+   '<div class="field"><label>¿A quién / quién?</label><input id="debt-who" placeholder="Ej: Adrián" value="'+eA(d?d.who:'')+'"></div>'+
+   '<div class="field two"><div><label>Monto</label><input id="debt-amt" inputmode="decimal" placeholder="0" value="'+(d?d.amount:'')+'"></div><div><label>Fecha</label><input id="debt-date" type="date" value="'+today+'"></div></div>'+
+   '<div class="field"><label>Nota (opcional)</label><textarea id="debt-note" placeholder="Ej: cena, le presté para...">'+eT(d?d.note:'')+'</textarea></div>'+
+   '<button class="btn" onclick="saveDebt(\''+(d?d.id:'')+'\')">'+ic('check')+(d?'Guardar':'Anotar')+'</button>'+(d?'<div class="del" onclick="delDebt(\''+d.id+'\')">'+ic('trash',17)+'Eliminar</div>':''));
+  $('#debt-dir').querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickDebtDir=el.dataset.d;$('#debt-dir').querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
+}
+function saveDebt(id){const who=$('#debt-who').value.trim(),amt=num($('#debt-amt').value);if(!amt){toast('Escribe el monto');return;}
+  const dstr=$('#debt-date').value,date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString(),note=$('#debt-note').value.trim();
+  DB.debts=DB.debts||[];
+  if(id){const d=DB.debts.find(x=>x.id===id);if(d)Object.assign(d,{who,amount:amt,dir:pickDebtDir,note,date});}
+  else DB.debts.push({id:uid(),who,amount:amt,dir:pickDebtDir,note,date,settled:false});
+  save();closeModal();toast('Guardado');renderAll();
+}
+function toggleDebt(id){const d=(DB.debts||[]).find(x=>x.id===id);if(!d)return;d.settled=!d.settled;save();toast(d.settled?'Saldado ✓':'Marcado pendiente');renderSvc();}
+function delDebt(id){DB.debts=(DB.debts||[]).filter(x=>x.id!==id);save();closeModal();toast('Eliminado');renderAll();}
 function paySvc(id){const s=DB.services.find(x=>x.id===id);if(!s)return;
   if(svcPaid(s)){if(s.paidExp)DB.expenses=DB.expenses.filter(e=>e.id!==s.paidExp);s.paidMonth=null;s.paidExp=null;toast('Marcado como no pagado');}
   else{s.paidMonth=monthKey();if((s.amount||0)>0){const eid=uid();DB.expenses.push({id:eid,amount:s.amount,cardId:null,category:SVC2CAT[s.section]||'otros',note:s.name,months:1,date:new Date().toISOString(),createdAt:Date.now()});s.paidExp=eid;toast('Pagado ✓ · registrado como gasto');}else toast('Servicio pagado ✓');}
