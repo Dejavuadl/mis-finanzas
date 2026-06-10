@@ -574,6 +574,7 @@ body{
     <div class="cap-wrap">
       <div id="cap-bal"></div>
     </div>
+    <div id="sched-list"></div>
     <input id="bal-search" class="balsearch" placeholder="Buscar movimiento, categoría o tarjeta…" autocomplete="off" oninput="renderBalance()">
     <div class="segs" id="exp-filters"></div>
     <div class="panel" id="exp-summary" style="display:none"></div>
@@ -728,6 +729,7 @@ const P = {
   move:'<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/>',
   trendup:'<path d="M3 17l6-6 4 4 7-7"/><path d="M17 7h4v4"/>',
   users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  repeat:'<path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
   target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
   pie:'<path d="M12 3v9l6.5 6.5A9 9 0 1 1 12 3z"/><path d="M16 3.5A9 9 0 0 1 20.5 8H12z"/>',
 };
@@ -853,7 +855,7 @@ const CATS=[
 ];
 
 let DB=load();
-function load(){try{const d=JSON.parse(localStorage.getItem('finanzas_v1'));if(d){d.investments=d.investments||[];d.settings=d.settings||{};d.incomes=d.incomes||[];d.services=d.services||[];return d;}}catch(e){}return {cards:[],expenses:[],savings:[],investments:[],incomes:[],services:[],settings:{}};}
+function load(){try{const d=JSON.parse(localStorage.getItem('finanzas_v1'));if(d){d.investments=d.investments||[];d.settings=d.settings||{};d.incomes=d.incomes||[];d.services=d.services||[];d.sched=d.sched||[];return d;}}catch(e){}return {cards:[],expenses:[],savings:[],investments:[],incomes:[],services:[],sched:[],settings:{}};}
 
 const ICATS=[
   {id:'sueldo',name:'Sueldo',i:'coins'},{id:'freelance',name:'Freelance',i:'invest'},
@@ -870,6 +872,8 @@ const SVCS=[
 const svcSecById=id=>SVCS.find(s=>s.id===id)||SVCS[SVCS.length-1];
 const SVC2CAT={casa:'hogar',auto:'transporte',suscrip:'suscrip',impuestos:'impuestos',salud:'salud',otros:'otros'};
 const monthKey=()=>{const n=new Date();return n.getFullYear()+'-'+n.getMonth();};
+const monthKeyOf=dt=>{const n=new Date(dt);return n.getFullYear()+'-'+n.getMonth();};
+const schedGotThisMonth=s=>DB.incomes.some(i=>i.schedId===s.id&&monthKeyOf(i.date)===monthKey());
 const svcPaid=s=>s.paidMonth===monthKey();
 const SVC_PRESETS=[{n:'Luz',sec:'casa'},{n:'Agua',sec:'casa'},{n:'Gas',sec:'casa'},{n:'Internet',sec:'casa'},{n:'Renta',sec:'casa'},{n:'Teléfono',sec:'casa'},{n:'Tenencia',sec:'auto'},{n:'Verificación',sec:'auto'},{n:'Seguro auto',sec:'auto'},{n:'Netflix',sec:'suscrip'},{n:'Spotify',sec:'suscrip'},{n:'Gym',sec:'salud'},{n:'Predial',sec:'impuestos'},{n:'ISR / SAT',sec:'impuestos'},{n:'Tenencia',sec:'impuestos'},{n:'Agua',sec:'impuestos'},{n:'Impuestos',sec:'impuestos'}];
 function save(){localStorage.setItem('finanzas_v1',JSON.stringify(DB));}
@@ -1251,6 +1255,35 @@ function uploadStatement(){
 
 let balFilter='todos';
 function setBalFilter(f){balFilter=f;renderBalance();}
+function renderSched(){
+  const box=$('#sched-list');if(!box)return;const list=DB.sched||[];
+  if(!list.length||balFilter==='gastos'){box.innerHTML='';return;}
+  let h='<div class="sect" style="margin:16px 4px 10px"><h2 style="display:flex;align-items:center;gap:9px;font-size:15px">'+ic('repeat',17)+'Ingresos programados</h2></div><div class="msub" style="margin:0 2px 10px">No cuentan hasta que confirmes que ya te pagaron</div><div class="panel" style="padding:4px 14px">';
+  list.forEach(s=>{const got=schedGotThisMonth(s);
+    h+='<div class="row-item" onclick="openSchedForm(\''+s.id+'\')"><div class="ci" style="background:rgba(54,211,153,.13);color:#36d399">'+ic('repeat',20)+'</div><div class="ti"><div class="a">'+(s.name||icatById(s.category).name)+'</div><div class="b">Cada día '+(s.day||'–')+' · '+(got?'<span style="color:#36d399;font-weight:600">Recibido este mes ✓</span>':'<span style="color:var(--warn)">Aún no te pagan</span>')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:10px"><div class="amt tnum" style="color:'+(got?'var(--mut)':'#36d399')+'">$'+fmt(s.amount||0)+'</div>'+(got?'<button class="svc-check on" type="button" onclick="event.stopPropagation()">'+ic('check',16)+'</button>':'<button class="btn ghost" type="button" style="width:auto;padding:7px 11px;font-size:12px;box-shadow:none" onclick="event.stopPropagation();receiveSched(\''+s.id+'\')">Ya lo recibí</button>')+'</div></div>';});
+  h+='</div><button class="btn ghost" style="margin-top:10px" onclick="openSchedForm()">'+ic('plus')+'Programar un ingreso</button>';
+  box.innerHTML=h;
+}
+let pickSchedICat='sueldo';
+function openSchedForm(id){
+  const s=id?(DB.sched||[]).find(x=>x.id===id):null;pickSchedICat=s?s.category:'sueldo';
+  const eA=v=>String(v||'').replace(/"/g,'&quot;'),eT=v=>String(v||'').replace(/</g,'&lt;');
+  openModal('<h3>'+(s?'Ingreso programado':'Programar ingreso')+'</h3><div class="msub">Se repite cada mes; tú confirmas cuando te paguen</div>'+
+   '<div class="field"><label>Nombre</label><input id="sc-name" placeholder="Ej: Sueldo, renta que cobro…" value="'+eA(s?s.name:'')+'"></div>'+
+   '<div class="field two"><div><label>Monto esperado</label><input id="sc-amt" inputmode="decimal" placeholder="0" value="'+(s?s.amount:'')+'"></div><div><label>Día del mes</label><input id="sc-day" type="number" inputmode="numeric" min="1" max="31" oninput="capDay(this)" placeholder="Ej: 18" value="'+(s&&s.day?s.day:'')+'"></div></div>'+
+   '<div class="field"><label>Tipo</label><div class="picker" id="sc-icat">'+ICATS.map(c=>'<div class="pick '+(c.id===pickSchedICat?'on':'')+'" data-c="'+c.id+'">'+ic(c.i,21)+c.name+'</div>').join('')+'</div></div>'+
+   '<div class="field"><label>Nota (opcional)</label><textarea id="sc-note" placeholder="Ej: quincena, depósito de...">'+eT(s?s.note:'')+'</textarea></div>'+
+   '<button class="btn" onclick="saveSched(\''+(s?s.id:'')+'\')">'+ic('check')+(s?'Guardar':'Programar')+'</button>'+(s?'<div class="del" onclick="delSched(\''+s.id+'\')">'+ic('trash',17)+'Eliminar</div>':''));
+  $('#sc-icat').querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickSchedICat=el.dataset.c;$('#sc-icat').querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
+}
+function saveSched(id){const name=$('#sc-name').value.trim(),amt=num($('#sc-amt').value),day=clampDay($('#sc-day').value),note=$('#sc-note').value.trim();if(!amt){toast('Escribe el monto');return;}
+  DB.sched=DB.sched||[];
+  if(id){const s=DB.sched.find(x=>x.id===id);if(s)Object.assign(s,{name:name||icatById(pickSchedICat).name,amount:amt,day,category:pickSchedICat,note});}
+  else DB.sched.push({id:uid(),name:name||icatById(pickSchedICat).name,amount:amt,day,category:pickSchedICat,note});
+  save();closeModal();toast('Ingreso programado ✓');renderAll();
+}
+function delSched(id){DB.sched=(DB.sched||[]).filter(x=>x.id!==id);save();closeModal();toast('Programado eliminado');renderAll();}
+function receiveSched(id){const s=(DB.sched||[]).find(x=>x.id===id);if(!s)return;DB.incomes.push({id:uid(),amount:s.amount,category:s.category,note:s.note||s.name,ticket:null,date:new Date().toISOString(),schedId:id,createdAt:Date.now()});save();toast('¡Ingreso recibido! 💰');renderAll();}
 function renderBalance(){
   const inMonth=monthIncomes().reduce((s,e)=>s+e.amount,0),outMonth=monthExpenses().filter(e=>!(e.months>1)).reduce((s,e)=>s+e.amount,0)+msiMonthlyAll(),bal=inMonth-outMonth;
   $('#bal-lbl').innerHTML=ic('swap',14)+' Balance del mes'+qh('balance');
@@ -1259,6 +1292,7 @@ function renderBalance(){
   $('#bal-in').textContent='$'+fmt(inMonth);
   $('#bal-out').textContent='$'+fmt(outMonth);
   mountCapture('cap-bal','balance',null);
+  renderSched();
   $('#exp-filters').innerHTML=[['todos','Todos'],['ingresos','Ingresos'],['gastos','Gastos']].map(f=>'<div class="seg '+(balFilter===f[0]?'on':'')+'" onclick="setBalFilter(\''+f[0]+'\')">'+f[1]+'</div>').join('');
   let list=[];
   DB.expenses.forEach(e=>{if(!(e.months>1))list.push(Object.assign({_k:'exp'},e));}); // las compras a meses NO van como gasto completo
@@ -1521,7 +1555,10 @@ function capAdd(ctx,fixedCard,amt,note,dateEl){
   const v=num(amt.value);if(!v){toast('Escribe el monto');return;}
   const st=capState[ctx],n=note?note.value.trim():'';
   const dstr=dateEl&&dateEl.value?dateEl.value:'',date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString();
-  if(ctx==='balance'&&st.mode==='income'){const rd=st.recur?new Date(date).getDate():null;DB.incomes.push({id:uid(),amount:v,category:st.icat,note:n,ticket:st.tk||null,date:date,recur:!!st.recur,recurDay:rd,createdAt:Date.now()});st.recur=false;toast(rd?'Ingreso recurrente guardado ✓':'Ingreso guardado');}
+  if(ctx==='balance'&&st.mode==='income'){
+    if(st.recur){const day=new Date(date).getDate();DB.sched=DB.sched||[];DB.sched.push({id:uid(),name:n||icatById(st.icat).name,amount:v,day,category:st.icat,note:n});st.recur=false;toast('Ingreso programado ✓');}
+    else{DB.incomes.push({id:uid(),amount:v,category:st.icat,note:n,ticket:st.tk||null,date:date,createdAt:Date.now()});toast('Ingreso guardado');}
+  }
   else{const card=(ctx==='card')?fixedCard:st.cardId;DB.expenses.push({id:uid(),amount:v,cardId:card||null,category:st.cat,note:n,months:st.months,ticket:st.tk||null,date:date,createdAt:Date.now()});
     const dc=card?DB.cards.find(x=>x.id===card):null;
     if(dc&&isDebit(dc)){dc.balance=Math.max(0,(dc.balance||0)-v);dc.history=dc.history||[];dc.history.push({t:'out',amt:v,date:date});toast('Gasto pagado con débito ✓');}
@@ -1665,12 +1702,11 @@ function delInv(id){DB.investments=DB.investments.filter(i=>i.id!==id);save();cl
 /* ============== INGRESOS (modal) ============== */
 let pickICat='otros',pickRecur=false;
 function editInc(id){
-  const e=DB.incomes.find(x=>x.id===id);pickICat=e.category||'otros';pickRecur=!!e.recur;const dStr=new Date(e.date).toISOString().slice(0,10);
-  openModal('<h3>Editar ingreso</h3><div class="msub">Ajusta tu ingreso</div><div class="field two"><div><label>Monto</label><input id="n-amt" inputmode="decimal" value="'+e.amount+'"></div><div><label>Fecha</label><input id="n-date" type="date" value="'+dStr+'"></div></div><div class="field"><label>Tipo de ingreso</label><div class="picker" id="icatpick">'+ICATS.map(c=>'<div class="pick '+(c.id===pickICat?'on':'')+'" data-c="'+c.id+'">'+ic(c.i,21)+c.name+'</div>').join('')+'</div></div><div class="field"><label>¿Se repite cada mes?</label><div class="picker" style="grid-template-columns:1fr 1fr" id="recpick"><div class="pick '+(!pickRecur?'on':'')+'" data-r="0">Una sola vez</div><div class="pick '+(pickRecur?'on':'')+'" data-r="1">Cada mes</div></div><div class="hint" style="margin-top:8px">Se repetirá el <b>día '+(e.recurDay||new Date(e.date).getDate())+'</b> de cada mes (el día de la fecha de arriba).</div></div><div class="field"><label>Nota (opcional)</label><textarea id="n-note" placeholder="Ej: quincena, sueldo...">'+(e.note||'')+'</textarea></div>'+ticketIncHTML(e,id)+'<button class="btn" onclick="saveInc(\''+id+'\')">'+ic('check')+'Guardar</button><div class="del" onclick="delInc(\''+id+'\')">'+ic('trash',17)+'Eliminar</div>');
+  const e=DB.incomes.find(x=>x.id===id);pickICat=e.category||'otros';const dStr=new Date(e.date).toISOString().slice(0,10);
+  openModal('<h3>Editar ingreso</h3><div class="msub">Ajusta tu ingreso</div><div class="field two"><div><label>Monto</label><input id="n-amt" inputmode="decimal" value="'+e.amount+'"></div><div><label>Fecha</label><input id="n-date" type="date" value="'+dStr+'"></div></div><div class="field"><label>Tipo de ingreso</label><div class="picker" id="icatpick">'+ICATS.map(c=>'<div class="pick '+(c.id===pickICat?'on':'')+'" data-c="'+c.id+'">'+ic(c.i,21)+c.name+'</div>').join('')+'</div></div><div class="field"><label>Nota (opcional)</label><textarea id="n-note" placeholder="Ej: quincena, sueldo...">'+(e.note||'')+'</textarea></div>'+ticketIncHTML(e,id)+'<button class="btn" onclick="saveInc(\''+id+'\')">'+ic('check')+'Guardar</button><div class="del" onclick="delInc(\''+id+'\')">'+ic('trash',17)+'Eliminar</div>');
   $('#icatpick').querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickICat=el.dataset.c;$('#icatpick').querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
-  $('#recpick').querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickRecur=el.dataset.r==='1';$('#recpick').querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
 }
-function saveInc(id){const e=DB.incomes.find(x=>x.id===id);e.amount=num($('#n-amt').value)||e.amount;e.category=pickICat;e.note=$('#n-note').value.trim();e.date=new Date($('#n-date').value+'T12:00:00').toISOString();e.recur=pickRecur;e.recurDay=pickRecur?new Date(e.date).getDate():null;save();closeModal();toast('Ingreso actualizado');renderAll();}
+function saveInc(id){const e=DB.incomes.find(x=>x.id===id);e.amount=num($('#n-amt').value)||e.amount;e.category=pickICat;e.note=$('#n-note').value.trim();e.date=new Date($('#n-date').value+'T12:00:00').toISOString();save();closeModal();toast('Ingreso actualizado');renderAll();}
 function delInc(id){DB.incomes=DB.incomes.filter(x=>x.id!==id);save();closeModal();toast('Ingreso eliminado');renderAll();}
 
 /* ============== SERVICIOS (modal) ============== */
@@ -1935,7 +1971,7 @@ function pushReminders(){
     if(c.payDay&&nf.pagos!==false&&debe)occ(c.payDay).forEach(d=>out.push({date:d,type:'pago',name:c.name,amount:(c.debt||c.payNoInt||c.payMin||0)}));
   });
   DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,type:'servicio',name:s.name,amount:(s.amount||0)}));});
-  DB.incomes.forEach(e=>{if(e.recur&&e.recurDay&&nf.ingresos!==false)occ(e.recurDay).forEach(d=>out.push({date:d,type:'ingreso',name:(e.note||icatById(e.category).name),amount:(e.amount||0)}));});
+  (DB.sched||[]).forEach(s=>{if(s.day&&nf.ingresos!==false&&!schedGotThisMonth(s))occ(s.day).forEach(d=>out.push({date:d,type:'ingreso',name:(s.name||icatById(s.category).name),amount:(s.amount||0)}));});
   return out;
 }
 async function getSub(){const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID_PUB)});return sub;}
@@ -1951,6 +1987,9 @@ async function syncPush(){if(!DB.settings.pushOn||!('serviceWorker'in navigator)
 function togglePush(){if(DB.settings.pushOn)disablePush().then(renderSettings);else enablePush().then(renderSettings);}
 
 function boot(){
+  DB.sched=DB.sched||[];
+  const _mig=DB.incomes.filter(i=>i.recur);
+  if(_mig.length){_mig.forEach(i=>DB.sched.push({id:uid(),name:i.note||icatById(i.category).name,amount:i.amount,day:i.recurDay||new Date(i.date).getDate(),category:i.category,note:i.note||''}));DB.incomes=DB.incomes.filter(i=>!i.recur);save();}
   applyTheme(DB.settings.theme||'oro');
   buildKeypad();
   const hr=new Date().getHours(),g=hr<12?'Buenos días':hr<19?'Buenas tardes':'Buenas noches';
