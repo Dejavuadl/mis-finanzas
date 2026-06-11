@@ -1083,13 +1083,14 @@ function renderHome(){
   const tot=monthExpenses().filter(e=>!(e.months>1)).reduce((s,e)=>s+e.amount,0)+msiMonthlyAll(),inT=monthIncomes().reduce((s,e)=>s+e.amount,0),bal=inT-tot;
   $('#h-in').textContent='$'+fmt(inT);
   $('#h-bal').textContent=(bal<0?'-$':'$')+fmt(Math.abs(bal));$('#h-bal').style.color=bal<0?'var(--danger)':'#36d399';
-  const totDebt=DB.cards.reduce((s,c)=>s+(c.debt||0)+cardMsiRemaining(c.id),0);
+  const totDebt=totalDebtAll();
   $('#h-debt').textContent='$'+fmt(totDebt);
   const svcMonthly=DB.services.reduce((s,x)=>s+(x.amount||0),0);
   const qc=(gn,icon,val,label,color)=>'<div class="qcard" onclick="go(\''+gn+'\')"><div class="qhead"><div class="qic">'+ic(icon,19)+'</div><span class="chev">'+ic('chevR',18)+'</span></div><div class="qv tnum" style="color:'+(color||'var(--txt)')+'">'+val+'</div><div class="ql">'+label+'</div></div>';
+  const qcTap=(act,icon,val,label,color)=>'<div class="qcard" onclick="'+act+'"><div class="qhead"><div class="qic">'+ic(icon,19)+'</div><span class="chev">'+ic('chevR',18)+'</span></div><div class="qv tnum" style="color:'+(color||'var(--txt)')+'">'+val+'</div><div class="ql">'+label+'</div></div>';
   $('#home-grid').innerHTML=
     qc('exp','swap',(bal<0?'-$':'+$')+fmt(Math.abs(bal)),'Balance del mes',bal<0?'var(--danger)':'#36d399')+
-    qc('cards','card','$'+fmt(totDebt),'Deuda en tarjetas',totDebt>0?'var(--danger)':'var(--txt)')+
+    qcTap('openDebtBreakdown()','card','$'+fmt(totDebt),'Deuda total',totDebt>0?'var(--danger)':'var(--txt)')+
     qc('svc','receipt','$'+fmt(svcMonthly),'Servicios al mes')+
     qc('save','wallet','$'+fmt(patr),'Ahorros + inversión','var(--accnum)');
   const lk=DB.settings.premium?'':' '+premBadge();
@@ -1240,6 +1241,21 @@ function saveLineUp(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;const n
   const dstr=$('#lu-date').value,date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString(),prev=c.limit||0;
   c.limit=nv;c.limitHist=c.limitHist||[];c.limitHist.push({date,prev,next:nv});save();closeModal();
   toast(nv>prev?'¡Línea aumentada! 🎉':'Línea actualizada');renderCardDetail(id);renderAll();
+}
+function debtParts(){
+  const tarjetas=DB.cards.reduce((s,c)=>s+(c.debt||0)+cardMsiRemaining(c.id),0);
+  const personas=(DB.debts||[]).filter(d=>!d.settled&&d.dir!=='owed').reduce((s,d)=>s+debtRemAmt(d),0);
+  const grandes=(DB.loans||[]).filter(l=>!l.done&&l.dir!=='owed').reduce((s,l)=>s+loanRem(l),0);
+  return {tarjetas,personas,grandes,total:tarjetas+personas+grandes};
+}
+function totalDebtAll(){return debtParts().total;}
+function openDebtBreakdown(){const p=debtParts();
+  const row=(icon,label,val,act)=>'<div class="row-item" onclick="closeModal();'+act+'"><div class="ci" style="background:var(--danger-s);color:var(--danger)">'+ic(icon,20)+'</div><div class="ti"><div class="a">'+label+'</div></div><div class="amt tnum" style="color:'+(val>0?'var(--danger)':'var(--mut)')+'">$'+fmt(val)+'</div></div>';
+  let h='<h3 style="margin-bottom:2px">Deuda total</h3><div class="msub" style="margin-bottom:16px">Todo lo que debes, en un solo lugar</div>';
+  h+='<div class="panel" style="text-align:center;padding:18px 16px;margin-bottom:14px"><div style="color:var(--mut);font-size:12.5px;margin-bottom:4px">Debes en total</div><div class="tnum" style="font-size:32px;font-weight:800;color:var(--danger)">$'+fmt(p.total)+'</div></div>';
+  h+='<div class="panel" style="padding:4px 14px">'+row('card','Tarjetas de crédito',p.tarjetas,"go('cards')")+row('users','Le debo a personas',p.personas,"go('svc')")+row('coins','Deudas grandes',p.grandes,"go('svc')")+'</div>';
+  if(p.total<=0)h+='<div style="text-align:center;color:#36d399;font-weight:700;margin-top:16px">¡No debes nada! 🎉</div>';
+  openModal(h);
 }
 let pickPaySrc='';
 function payCard(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;
