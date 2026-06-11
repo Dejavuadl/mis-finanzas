@@ -865,6 +865,9 @@ const BANKS=[
   {id:'finabien',name:'FINABIEN',c1:'#0a5c2e',c2:'#1f9a3a',kw:['finabien','telecomm']},
   {id:'banjercito',name:'Banjercito',c1:'#1a3d1a',c2:'#3a6e2a',kw:['banjercito']},
   {id:'intercam',name:'Intercam',c1:'#0a2f5c',c2:'#2f6fb0',kw:['intercam']},
+  {id:'cpm',name:'Caja Popular Mexicana',c1:'#0a3d6e',c2:'#1f8ad6',kw:['cpm','caja popular']},
+  {id:'cmv',name:'Caja Morelia Valladolid',c1:'#6e0f22',c2:'#c8203f',kw:['morelia','valladolid','cmv']},
+  {id:'cgv',name:'Caja Gonzalo Vega',c1:'#0a5c2e',c2:'#1f9a3a',kw:['gonzalo vega','cgv']},
   {id:'otro',name:'Otra',c1:'#1f242e',c2:'#4d5666',kw:[]},
 ];
 // Productos/diseños de tarjeta por banco (colores por tipo: oro, platino, negro, etc.)
@@ -907,22 +910,15 @@ const DEBIT_PRODUCTS={
  mp:[{id:'mp',name:'Mercado Pago',c1:'#0058a3',c2:'#22b6f0'}],
  stori:[{id:'stori',name:'Stori Cuenta+',c1:'#3d1a9e',c2:'#8a5cff'}],
  klar:[{id:'klar',name:'Klar',c1:'#a8005a',c2:'#ff5cb0'},{id:'plus',name:'Klar Plus',c1:'#120a18',c2:'#a8005a'}],
- rappi:[{id:'rappi',name:'RappiPay',c1:'#161616',c2:'#ff5a2c'}],
  scotia:[{id:'scotia',name:'Cuenta Scotia',c1:'#7a0000',c2:'#ec111a'},{id:'cool',name:'Scotia Cool',c1:'#c2102a',c2:'#ff6b6b'},{id:'nomina',name:'Nómina Clásica',c1:'#7a0000',c2:'#c2102a'}],
  inbursa:[{id:'efe',name:'Cuenta Efe',c1:'#073d28',c2:'#13b86a'},{id:'debito',name:'Débito',c1:'#073d28',c2:'#0f8a52'},{id:'nomina',name:'Nómina',c1:'#073d28',c2:'#0f8a52'}],
- invex:[{id:'debito',name:'Débito',c1:'#08304d',c2:'#2877b0'}],
  banregio:[{id:'flex',name:'Flex Digital',c1:'#b85410',c2:'#f7941d'},{id:'naranja',name:'Naranja',c1:'#8a3a0a',c2:'#f7941d'}],
- bajio:[{id:'debito',name:'Débito',c1:'#0a5c2a',c2:'#16b14a'}],
  afirme:[{id:'vision',name:'Visión Digital',c1:'#6e0f22',c2:'#c8203f'},{id:'debito',name:'Débito',c1:'#6e0f22',c2:'#c8203f'}],
  bancoppel:[{id:'efectiva',name:'Cuenta Efectiva',c1:'#08407f',c2:'#1f8ad6'},{id:'clic',name:'BanCoppel Clic',c1:'#0a4f9e',c2:'#2f9ae0'},{id:'jovenes',name:'Efectiva Jóvenes',c1:'#0a6ec2',c2:'#3ab0f0'}],
  azteca:[{id:'baz',name:'Cuenta BAZ',c1:'#0a5c2e',c2:'#2db84a'},{id:'guardadito',name:'Guardadito',c1:'#0a5c2e',c2:'#1f9a3a'},{id:'guardaditodig',name:'Guardadito Digital',c1:'#0a6e38',c2:'#2db84a'},{id:'nomina',name:'Nómina',c1:'#0a5c2e',c2:'#1f9a3a'}],
  mifel:[{id:'digital',name:'Cuenta Digital',c1:'#0a2f5c',c2:'#2f6fb0'}],
- multiva:[{id:'debito',name:'Débito',c1:'#7a3a0a',c2:'#e07a1a'}],
  uala:[{id:'uala',name:'Cuenta Ualá',c1:'#0a5c54',c2:'#16c4b0'}],
- didi:[{id:'didi',name:'DiDi Card',c1:'#b85410',c2:'#ff8c1a'}],
- plata:[{id:'plata',name:'Plata',c1:'#3a3f48',c2:'#aab0bb'}],
  albo:[{id:'albo',name:'Cuenta albo',c1:'#1a2f9e',c2:'#4d6bff'}],
- cuenca:[{id:'cuenca',name:'Cuenca',c1:'#0a3d3a',c2:'#13a89a'}],
  revolut:[{id:'standard',name:'Standard',c1:'#0e1014',c2:'#3a4150'},{id:'plus',name:'Plus',c1:'#1a2230',c2:'#4a5fb0'},{id:'premium',name:'Premium',c1:'#0e0f12',c2:'#33373f'},{id:'metal',name:'Metal',c1:'#16181d',c2:'#8a8f99'}],
  openbank:[{id:'light',name:'Débito Open Light',c1:'#0a2540',c2:'#00c2b2'},{id:'plus',name:'Débito Open +',c1:'#0e1014',c2:'#0a8f86'}],
  bineo:[{id:'ligera',name:'Cuenta bineo ligera',c1:'#0f3d2e',c2:'#34d07f'}],
@@ -933,6 +929,9 @@ const DEBIT_PRODUCTS={
  finabien:[{id:'finabien',name:'Tarjeta FINABIEN',c1:'#0a5c2e',c2:'#1f9a3a'}],
  banjercito:[{id:'basica',name:'Cuenta Básica',c1:'#1a3d1a',c2:'#3a6e2a'}],
  intercam:[{id:'enlace',name:'Intercuenta Enlace',c1:'#0a2f5c',c2:'#2f6fb0'}],
+ cpm:[{id:'cpm',name:'Débito CPM',c1:'#0a3d6e',c2:'#1f8ad6'},{id:'jr',name:'Débito JR (menores)',c1:'#0a6ec2',c2:'#3ab0f0'}],
+ cmv:[{id:'inverdinamica',name:'Inverdinámica',c1:'#6e0f22',c2:'#c8203f'}],
+ cgv:[{id:'cgv',name:'Débito CGV',c1:'#0a5c2e',c2:'#1f9a3a'}],
 };
 function debitProducts(bankId){if(DEBIT_PRODUCTS[bankId])return DEBIT_PRODUCTS[bankId];const b=bankById(bankId);return [{id:'debito',name:'Débito',c1:b.c1,c2:b.c2}];}
 function prodCatalogFor(type,bankId){return type==='debito'?debitProducts(bankId):CARD_PRODUCTS[bankId];}
