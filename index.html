@@ -1253,7 +1253,7 @@ function openDebtBreakdown(){const p=debtParts();
   const row=(icon,label,val,act)=>'<div class="row-item" onclick="closeModal();'+act+'"><div class="ci" style="background:var(--danger-s);color:var(--danger)">'+ic(icon,20)+'</div><div class="ti"><div class="a">'+label+'</div></div><div class="amt tnum" style="color:'+(val>0?'var(--danger)':'var(--mut)')+'">$'+fmt(val)+'</div></div>';
   let h='<h3 style="margin-bottom:2px">Deuda total</h3><div class="msub" style="margin-bottom:16px">Todo lo que debes, en un solo lugar</div>';
   h+='<div class="panel" style="text-align:center;padding:18px 16px;margin-bottom:14px"><div style="color:var(--mut);font-size:12.5px;margin-bottom:4px">Debes en total</div><div class="tnum" style="font-size:32px;font-weight:800;color:var(--danger)">$'+fmt(p.total)+'</div></div>';
-  h+='<div class="panel" style="padding:4px 14px">'+row('card','Tarjetas de crédito',p.tarjetas,"go('cards')")+row('users','Le debo a personas',p.personas,"go('svc')")+row('coins','Deudas grandes',p.grandes,"go('svc')")+'</div>';
+  h+='<div class="panel" style="padding:4px 14px">'+row('card','Tarjetas de crédito',p.tarjetas,"go('cards')")+row('users','Deudas personales',p.personas,"go('svc')")+row('coins','Deudas grandes',p.grandes,"go('svc')")+'</div>';
   if(p.total<=0)h+='<div style="text-align:center;color:#36d399;font-weight:700;margin-top:16px">¡No debes nada! 🎉</div>';
   openModal(h);
 }
