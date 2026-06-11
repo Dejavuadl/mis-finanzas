@@ -1412,7 +1412,7 @@ function schedSectionHTML(){
   if(!list.length){h+=svcAddCard("openSchedForm()","Programar un ingreso","Ej: tu <b>sueldo</b> el día 18, una <b>renta</b> que cobras…");return h;}
   h+='<div class="panel" style="padding:4px 14px;margin-bottom:8px">';
   list.forEach(s=>{const got=schedGotThisMonth(s);
-    h+='<div class="row-item" onclick="openSchedForm(\''+s.id+'\')"><div class="ci" style="background:rgba(54,211,153,.13);color:#36d399">'+ic('repeat',20)+'</div><div class="ti"><div class="a">'+(s.name||icatById(s.category).name)+'</div><div class="b">Cada día '+(s.day||'–')+' · '+(got?'<span style="color:#36d399;font-weight:600">Recibido este mes ✓</span>':'<span style="color:var(--warn)">Aún no te pagan</span>')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:10px"><div class="amt tnum" style="color:'+(got?'var(--mut)':'#36d399')+'">$'+fmt(s.amount||0)+'</div>'+(got?'<button class="svc-check on" type="button" onclick="event.stopPropagation()">'+ic('check',16)+'</button>':'<button class="btn ghost" type="button" style="width:auto;padding:7px 11px;font-size:12px;box-shadow:none" onclick="event.stopPropagation();receiveSched(\''+s.id+'\')">Ya lo recibí</button>')+'</div></div>';});
+    h+='<div class="row-item" onclick="openSchedForm(\''+s.id+'\')"><div class="ci" style="background:rgba(54,211,153,.13);color:#36d399">'+ic('repeat',20)+'</div><div class="ti"><div class="a">'+(s.name||icatById(s.category).name)+'</div><div class="b">Cada día '+(s.day||'–')+' · '+(got?'<span style="color:#36d399;font-weight:600">Recibido este mes ✓</span>':'<span style="color:var(--warn)">Aún no te pagan</span>')+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:10px"><div class="amt tnum" style="color:'+(got?'var(--mut)':'#36d399')+'">$'+fmt(s.amount||0)+'</div>'+(got?'<button class="svc-check on" type="button" onclick="event.stopPropagation();undoSched(\''+s.id+'\')">'+ic('check',16)+'</button>':'<button class="btn ghost" type="button" style="width:auto;padding:7px 11px;font-size:12px;box-shadow:none" onclick="event.stopPropagation();receiveSched(\''+s.id+'\')">Ya lo recibí</button>')+'</div></div>';});
   h+='</div><button class="btn ghost" onclick="openSchedForm()">'+ic('plus')+'Programar un ingreso</button>';
   return h;
 }
@@ -1436,6 +1436,7 @@ function saveSched(id){const name=$('#sc-name').value.trim(),amt=num($('#sc-amt'
 }
 function delSched(id){DB.sched=(DB.sched||[]).filter(x=>x.id!==id);save();closeModal();toast('Programado eliminado');renderAll();}
 function receiveSched(id){const s=(DB.sched||[]).find(x=>x.id===id);if(!s)return;DB.incomes.push({id:uid(),amount:s.amount,category:s.category,note:s.note||s.name,ticket:null,date:new Date().toISOString(),schedId:id,createdAt:Date.now()});save();toast('¡Ingreso recibido! 💰');renderAll();}
+function undoSched(id){DB.incomes=DB.incomes.filter(i=>!(i.schedId===id&&monthKeyOf(i.date)===monthKey()));save();toast('Marcado como no recibido');renderAll();}
 function renderBalance(){
   const inMonth=monthIncomes().reduce((s,e)=>s+e.amount,0),outMonth=monthExpenses().filter(e=>!(e.months>1)).reduce((s,e)=>s+e.amount,0)+msiMonthlyAll(),bal=inMonth-outMonth;
   $('#bal-lbl').innerHTML=ic('swap',14)+' Balance del mes'+qh('balance');
@@ -1495,12 +1496,12 @@ function renderSvc(){
   if(!activeDebts.length){html+=svcAddCard("openDebtForm()","Anotar dinero personal","Ej: <b>«le debo $500 a Adrián»</b> o <b>«Juan me debe $1,000»</b>.");}
   else{html+='<div class="panel" style="padding:4px 14px;margin-bottom:8px">';
     activeDebts.forEach(d=>{const owe=d.dir==='owe',col=owe?'var(--danger)':'#36d399';
-      const m=d.plan?(d.plan.monthly||0):0,pm=(d.plan&&m)?Math.round(debtPaid(d)/m):0,paidThis=d.plan&&paidThisMonth(d);
-      const planSub=d.plan?(paidThis?'<span style="color:#36d399;font-weight:600">Pagado este mes ✓</span> · '+pm+'/'+d.plan.months:'$'+fmt(m)+'/mes · '+pm+' de '+d.plan.months+' meses'):null;
+      const m=d.plan?(d.plan.monthly||0):0,pm=(d.plan&&m)?Math.round(debtPaid(d)/m):0,paidThis=d.plan&&paidThisMonth(d),rem=d.plan?debtRemAmt(d):0;
+      const planSub=d.plan?(paidThis?'<span style="color:#36d399;font-weight:600">Pagado este mes ✓</span> · '+pm+'/'+d.plan.months:pm+' de '+d.plan.months+' meses · faltan $'+fmt(rem)):null;
       const sub=planSub||d.note||(d.date?new Date(d.date).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'}):'')||'Pendiente';
-      const showAmt=d.plan?debtRemAmt(d):(d.amount||0);
+      const showAmt=d.plan?m:(d.amount||0),amtSuf=d.plan?'<span style="font-size:10.5px;color:var(--mut);font-weight:600;margin-left:1px"> /mes</span>':'';
       const tap=d.plan?'openDebtPay':'openDebtForm',chk=d.plan?'payMonthQuick':'settleDebt';
-      html+='<div class="row-item" onclick="'+tap+'(\''+d.id+'\')"><div class="ci" style="background:'+(owe?'var(--danger-s)':'rgba(54,211,153,.15)')+';color:'+col+'">'+ic(owe?'up':'down',20)+'</div><div class="ti"><div class="a">'+(owe?'Le debo a ':'Me debe ')+(d.who||'alguien')+'</div><div class="b">'+sub+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div class="amt tnum" style="color:'+col+'">$'+fmt2(showAmt)+'</div><button class="svc-check'+(paidThis?' on':'')+'" onclick="event.stopPropagation();'+chk+'(event,\''+d.id+'\')">'+ic('check',16)+'</button></div></div>';});
+      html+='<div class="row-item" onclick="'+tap+'(\''+d.id+'\')"><div class="ci" style="background:'+(owe?'var(--danger-s)':'rgba(54,211,153,.15)')+';color:'+col+'">'+ic(owe?'up':'down',20)+'</div><div class="ti"><div class="a">'+(owe?'Le debo a ':'Me debe ')+(d.who||'alguien')+'</div><div class="b">'+sub+'</div></div><div style="text-align:right;display:flex;align-items:center;gap:11px"><div class="amt tnum" style="color:'+col+'">$'+fmt2(showAmt)+amtSuf+'</div><button class="svc-check'+(paidThis?' on':'')+'" onclick="event.stopPropagation();'+chk+'(event,\''+d.id+'\')">'+ic('check',16)+'</button></div></div>';});
     html+='</div>';
     html+='<button class="btn ghost" style="margin-top:2px" onclick="openDebtForm()">'+ic('plus')+'Anotar dinero personal</button>';}
   if(settledDebts.length||debts.some(d=>(d.pays||[]).length))html+='<div class="hist-link" onclick="openDebtHistory()">'+ic('repeat',15)+'Ver historial de pagos'+(settledDebts.length?' · '+settledDebts.length+' saldada'+(settledDebts.length>1?'s':''):'')+'</div>';
