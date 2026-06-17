@@ -1435,7 +1435,16 @@ function saveSched(id){const name=$('#sc-name').value.trim(),amt=num($('#sc-amt'
   save();closeModal();toast('Ingreso programado ✓');renderAll();
 }
 function delSched(id){DB.sched=(DB.sched||[]).filter(x=>x.id!==id);save();closeModal();toast('Programado eliminado');renderAll();}
-function receiveSched(id){const s=(DB.sched||[]).find(x=>x.id===id);if(!s)return;DB.incomes.push({id:uid(),amount:s.amount,category:s.category,note:s.note||s.name,ticket:null,date:new Date().toISOString(),schedId:id,createdAt:Date.now()});save();toast('¡Ingreso recibido! 💰');renderAll();}
+function receiveSched(id){const s=(DB.sched||[]).find(x=>x.id===id);if(!s)return;const now=new Date().toISOString();DB.incomes.push({id:uid(),amount:s.amount,category:s.category,note:s.note||s.name,ticket:null,date:now,schedId:id,createdAt:Date.now()});const dn=depositIncome(s.dest,s.amount,now,s.note||s.name);save();toast(dn?('Recibido → '+dn+' ✓'):'¡Ingreso recibido! 💰');renderAll();}
+function depositIncome(dest,amt,date,note){
+  if(!dest)return null;
+  const ix=dest.indexOf(':'),kind=dest.slice(0,ix),id=dest.slice(ix+1);
+  const entry={t:'in',amt:amt,date:date||new Date().toISOString(),note:note||'Ingreso'};
+  if(kind==='debit'){const c=DB.cards.find(x=>x.id===id);if(!c)return null;c.balance=(c.balance||0)+amt;c.history=c.history||[];c.history.push(entry);return c.name;}
+  if(kind==='save'){const s=DB.savings.find(x=>x.id===id);if(!s)return null;s.current=(s.current||0)+amt;s.history=s.history||[];s.history.push(entry);return s.name;}
+  if(kind==='inv'){const iv=DB.investments.find(x=>x.id===id);if(!iv)return null;iv.principal=invCalc(iv).value+amt;iv.date=new Date().toISOString();iv.history=iv.history||[];iv.history.push(entry);return iv.name;}
+  return null;
+}
 function undoSched(id){DB.incomes=DB.incomes.filter(i=>!(i.schedId===id&&monthKeyOf(i.date)===monthKey()));save();toast('Marcado como no recibido');renderAll();}
 function renderBalance(){
   const inMonth=monthIncomes().reduce((s,e)=>s+e.amount,0),outMonth=monthExpenses().filter(e=>!(e.months>1)).reduce((s,e)=>s+e.amount,0)+msiMonthlyAll(),bal=inMonth-outMonth;
@@ -1678,7 +1687,7 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('gesturechange',e=>e.preventDefault());
 
 /* ============== CAPTURA CON CHIPS ============== */
-const capState={home:{cat:'otros',months:1,cardId:null,tk:null,open:false},balance:{mode:'expense',cat:'otros',icat:'sueldo',months:1,cardId:null,tk:null,recur:false,open:false},card:{cat:'otros',months:1,tk:null,open:false}};
+const capState={home:{cat:'otros',months:1,cardId:null,tk:null,open:false},balance:{mode:'expense',cat:'otros',icat:'sueldo',months:1,cardId:null,tk:null,recur:false,destId:'',open:false},card:{cat:'otros',months:1,tk:null,open:false}};
 function captureHTML(ctx){
   const st=capState[ctx],isBal=ctx==='balance',income=isBal&&st.mode==='income';
   let h='';
@@ -1697,6 +1706,14 @@ function captureHTML(ctx){
       if(ctx!=='card')h+='<div class="caplbl">Tarjeta</div><div class="segs chiprow" data-row="card"><div class="seg'+(!st.cardId?' on':'')+'" data-card="">Sin asignar / Efectivo</div>'+DB.cards.map(c=>'<div class="seg'+(st.cardId===c.id?' on':'')+'" data-card="'+c.id+'">'+c.name+'</div>').join('')+'</div>';
     }else{
       h+='<div class="caplbl">¿Se repite cada mes?</div><div class="segs chiprow" data-row="recur"><div class="seg'+(!st.recur?' on':'')+'" data-recur="0">Una sola vez</div><div class="seg'+(st.recur?' on':'')+'" data-recur="1">Cada mes (el día de la fecha)</div></div>';
+      const debs=DB.cards.filter(isDebit);
+      if(debs.length||DB.savings.length||DB.investments.length){
+        h+='<div class="caplbl">¿A dónde va? (opcional)</div><div class="segs chiprow" data-row="dest"><div class="seg'+(!st.destId?' on':'')+'" data-dest="">Solo registrar</div>'+
+          debs.map(c=>'<div class="seg'+(st.destId==='debit:'+c.id?' on':'')+'" data-dest="debit:'+c.id+'">'+ic('card',15)+c.name+'</div>').join('')+
+          DB.savings.map(s=>'<div class="seg'+(st.destId==='save:'+s.id?' on':'')+'" data-dest="save:'+s.id+'">'+ic('piggy',15)+s.name+'</div>').join('')+
+          DB.investments.map(iv=>'<div class="seg'+(st.destId==='inv:'+iv.id?' on':'')+'" data-dest="inv:'+iv.id+'">'+ic('invest',15)+iv.name+'</div>').join('')+
+          '</div>';
+      }
     }
   }
   return h;
@@ -1713,6 +1730,7 @@ function mountCapture(hostId,ctx,fixedCard){
   host.querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{st.months=parseInt(el.dataset.m);setActiveSeg(host,'months',el);});
   host.querySelectorAll('[data-card]').forEach(el=>el.onclick=()=>{st.cardId=el.dataset.card||null;setActiveSeg(host,'card',el);});
   host.querySelectorAll('[data-recur]').forEach(el=>el.onclick=()=>{st.recur=el.dataset.recur==='1';setActiveSeg(host,'recur',el);});
+  host.querySelectorAll('[data-dest]').forEach(el=>el.onclick=()=>{st.destId=el.dataset.dest||'';setActiveSeg(host,'dest',el);});
   const more=host.querySelector('.cap-more');if(more)more.onclick=()=>{st.open=!st.open;mountCapture(hostId,ctx,fixedCard);};
   const tk=host.querySelector('.cap-ticket');if(tk)tk.onclick=()=>openCaptureAttach(ctx,hostId,fixedCard);
   const dateEl=host.querySelector('.cap-date');
@@ -1725,8 +1743,9 @@ function capAdd(ctx,fixedCard,amt,note,dateEl){
   const st=capState[ctx],n=note?note.value.trim():'';
   const dstr=dateEl&&dateEl.value?dateEl.value:'',date=dstr?new Date(dstr+'T12:00:00').toISOString():new Date().toISOString();
   if(ctx==='balance'&&st.mode==='income'){
-    if(st.recur){const day=new Date(date).getDate();DB.sched=DB.sched||[];DB.sched.push({id:uid(),name:n||icatById(st.icat).name,amount:v,day,category:st.icat,note:n});st.recur=false;toast('Ingreso programado ✓');}
-    else{DB.incomes.push({id:uid(),amount:v,category:st.icat,note:n,ticket:st.tk||null,date:date,createdAt:Date.now()});toast(st.open?'Ingreso guardado':'Guardado · sin categoría');}
+    if(st.recur){const day=new Date(date).getDate();DB.sched=DB.sched||[];DB.sched.push({id:uid(),name:n||icatById(st.icat).name,amount:v,day,category:st.icat,note:n,dest:st.destId||''});st.recur=false;toast('Ingreso programado ✓');}
+    else{DB.incomes.push({id:uid(),amount:v,category:st.icat,note:n,ticket:st.tk||null,date:date,createdAt:Date.now()});const dn=depositIncome(st.destId,v,date,n||icatById(st.icat).name);toast(dn?('Ingreso → '+dn+' ✓'):(st.open?'Ingreso guardado':'Guardado · sin categoría'));}
+    st.destId='';
   }
   else{const card=(ctx==='card')?fixedCard:st.cardId;DB.expenses.push({id:uid(),amount:v,cardId:card||null,category:st.cat,note:n,months:st.months,ticket:st.tk||null,date:date,createdAt:Date.now()});
     const dc=card?DB.cards.find(x=>x.id===card):null;
