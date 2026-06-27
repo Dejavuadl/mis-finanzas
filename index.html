@@ -1059,8 +1059,8 @@ const msiActive=e=>e.months>1&&msiLeft(e)>0;
 const cardMsiMonthly=id=>DB.expenses.filter(e=>e.cardId===id&&msiActive(e)).reduce((s,e)=>s+msiMonthly(e),0);
 const cardMsiRemaining=id=>DB.expenses.filter(e=>e.cardId===id&&e.months>1).reduce((s,e)=>s+msiMonthly(e)*msiLeft(e),0);
 const cardContado=id=>DB.expenses.filter(e=>e.cardId===id&&!(e.months>1)).reduce((s,e)=>s+(e.amount||0),0);
-// Usado de la línea = deuda + gastos de contado + meses por pagar (se refleja al instante, sin esperar al corte)
-const cardUsed=c=>Math.max(0,(c.debt||0))+cardContado(c.id)+cardMsiRemaining(c.id);
+// Usado de la línea = deuda + gastos de contado + meses por pagar − pagos hechos (sube con gastos, baja al pagar)
+const cardUsed=c=>Math.max(0,(c.debt||0)+cardContado(c.id)+cardMsiRemaining(c.id)-(c.paid||0));
 const msiMonthlyAll=()=>DB.expenses.filter(e=>msiActive(e)).reduce((s,e)=>s+msiMonthly(e),0); // mensualidad total de compras a meses (este mes)
 const MSI_OPTS=[1,3,6,9,12,18,24];
 
@@ -1117,7 +1117,7 @@ function renderHome(){
   const prow=(icon,title,sub,fn)=>'<div onclick="'+fn+'" style="display:flex;align-items:center;gap:13px;background:var(--panel);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:11px;cursor:pointer"><div style="width:42px;height:42px;border-radius:12px;background:var(--icobg);color:var(--icofg);display:flex;align-items:center;justify-content:center;flex-shrink:0">'+ic(icon,20)+'</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:7px">'+title+lk+'</div><div style="font-size:12.5px;color:var(--mut);margin-top:2px">'+sub+'</div></div>'+ic('chevR',18)+'</div>';
   $('#home-health').innerHTML='<div class="sect"><h2>Premium</h2></div>'+prow('target','Salud financiera','Tu puntaje y probabilidad de aumento','openHealth()')+prow('pie','Reportes','En qué se va tu dinero, por categoría','openReports()')+prow('receipt','Presupuestos','Pon límites y evita pasarte','openBudgets()');
   const al=[],nf=DB.settings.notif||{},win=nf.dias||3;
-  DB.cards.forEach(c=>{if(c.cutDay&&nf.cortes!==false){const d=daysUntil(nextDate(c.cutDay));if(d<=win)al.push({card:c,type:'cut',d});}const debe=(c.debt||0)>0||(c.payMin||0)>0||(c.payNoInt||0)>0||cardMsiMonthly(c.id)>0;if(c.payDay&&nf.pagos!==false&&debe){const d=daysUntil(nextDate(c.payDay));if(d<=win+2)al.push({card:c,type:'pay',d});}});
+  DB.cards.forEach(c=>{if(c.cutDay&&nf.cortes!==false){const d=daysUntil(nextDate(c.cutDay));if(d<=win)al.push({card:c,type:'cut',d});}const debe=cardUsed(c)>0||(c.payMin||0)>0||(c.payNoInt||0)>0;if(c.payDay&&nf.pagos!==false&&debe){const d=daysUntil(nextDate(c.payDay));if(d<=win+2)al.push({card:c,type:'pay',d});}});
   DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s)){const d=daysUntil(nextDate(s.day));if(d<=win)al.push({svc:s,type:'svc',d});}});
   al.sort((a,b)=>a.d-b.d);
   const box=$('#alerts-list');
@@ -1279,22 +1279,22 @@ function openDebtBreakdown(){const p=debtParts();
 }
 let pickPaySrc='';
 function payCard(id){const c=DB.cards.find(x=>x.id===id);if(!c)return;
-  const due=(c.debt||0)+(c.payMin||0)+(c.payNoInt||0)+cardMsiMonthly(id);
-  if(due<=0){openModal('<div style="text-align:center;padding:8px 0 2px"><div style="width:62px;height:62px;border-radius:19px;background:rgba(54,211,153,.15);color:#36d399;display:flex;align-items:center;justify-content:center;margin:0 auto 15px">'+ic('check',32)+'</div><h3 style="text-align:center">¡Nada que pagar!</h3><div class="msub" style="text-align:center">Esta tarjeta está en <b>$0</b> — no tienes saldo por pagar. 🎉<br>Si sí debes algo, anótalo primero en "Deuda total".</div></div><button class="btn" style="margin-top:6px" onclick="closeModal()">Entendido</button>');return;}
+  const due=cardUsed(c)+(c.payMin||0)+(c.payNoInt||0);
+  if(due<=0){openModal('<div style="text-align:center;padding:8px 0 2px"><div style="width:62px;height:62px;border-radius:19px;background:rgba(54,211,153,.15);color:#36d399;display:flex;align-items:center;justify-content:center;margin:0 auto 15px">'+ic('check',32)+'</div><h3 style="text-align:center">¡Nada que pagar!</h3><div class="msub" style="text-align:center">Esta tarjeta está en <b>$0</b> — no tienes saldo por pagar. 🎉<br>Si sí debes algo, anótalo o regístralo como gasto primero.</div></div><button class="btn" style="margin-top:6px" onclick="closeModal()">Entendido</button>');return;}
   pickPaySrc='';
   const opt=(lbl,val)=>val>0?'<button class="btn ghost" type="button" style="box-shadow:none;justify-content:space-between" onclick="$(\'#pay-in\').value=\''+val+'\'">'+lbl+' <b class="tnum">$'+fmt(val)+'</b></button>':'';
   const debs=DB.cards.filter(isDebit);
   let src='<div class="label" style="margin:2px 2px 9px">¿Con qué pagas?</div><div class="picker" id="pay-src" style="grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px"><div class="pick on" data-src="">'+ic('banknote',20)+'Efectivo / otro</div>';
   debs.forEach(d=>{src+='<div class="pick" data-src="'+d.id+'">'+ic('card',20)+d.name+'<span style="font-size:10px;color:var(--mut);font-weight:600">$'+fmt(d.balance||0)+'</span></div>';});
   src+='</div>';
-  openModal('<h3>Pagar '+c.name+'</h3><div class="msub">Registra tu pago como si lo hicieras desde el banco</div><div class="field"><label>¿Cuánto vas a pagar?</label><input id="pay-in" inputmode="decimal" placeholder="0"></div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">'+opt('Pago total (deuda)',c.debt||0)+opt('Pago sin intereses',c.payNoInt||0)+opt('Pago mínimo',c.payMin||0)+'</div>'+src+'<button class="btn" onclick="doPayCard(\''+id+'\')">'+ic('check')+'Registrar pago</button>');
+  openModal('<h3>Pagar '+c.name+'</h3><div class="msub">Registra tu pago como si lo hicieras desde el banco</div><div class="field"><label>¿Cuánto vas a pagar?</label><input id="pay-in" inputmode="decimal" placeholder="0"></div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">'+opt('Pagar todo lo usado',cardUsed(c))+opt('Pago sin intereses',c.payNoInt||0)+opt('Pago mínimo',c.payMin||0)+'</div>'+src+'<button class="btn" onclick="doPayCard(\''+id+'\')">'+ic('check')+'Registrar pago</button>');
   const ps=$('#pay-src');if(ps)ps.querySelectorAll('.pick').forEach(el=>el.onclick=()=>{pickPaySrc=el.dataset.src;ps.querySelectorAll('.pick').forEach(x=>x.classList.remove('on'));el.classList.add('on');});
   setTimeout(()=>{try{$('#pay-in').focus();}catch(e){}},250);
 }
 function doPayCard(id){const c=DB.cards.find(x=>x.id===id),amt=num($('#pay-in').value);if(!amt){toast('Escribe el monto');return;}
   const deb=pickPaySrc?DB.cards.find(x=>x.id===pickPaySrc&&isDebit(x)):null;
   if(deb&&amt>(deb.balance||0)){toast(deb.name+' solo tiene $'+fmt(deb.balance||0));return;}
-  c.debt=Math.max(0,(c.debt||0)-amt);
+  c.paid=(c.paid||0)+amt;
   const payId=uid();c.payHist=c.payHist||[];c.payHist.push({id:payId,amt,date:new Date().toISOString(),src:deb?deb.id:null,srcName:deb?deb.name:null});
   if(deb){deb.balance=Math.max(0,(deb.balance||0)-amt);deb.history=deb.history||[];deb.history.push({t:'out',amt:amt,date:new Date().toISOString(),ref:payId});}
   save();closeModal();toast(deb?('Pago de $'+fmt(amt)+' con '+deb.name+' ✓'):('Pago de $'+fmt(amt)+' registrado ✓'));renderAll();if(detailShown())renderCardDetail(id);
@@ -1303,7 +1303,7 @@ function confirmUndoCardPay(cardId,payId){const c=DB.cards.find(x=>x.id===cardId
   openModal('<div style="text-align:center;padding:4px 0 2px"><div style="width:60px;height:60px;border-radius:18px;background:var(--danger-s);color:var(--danger);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">'+ic('back',28)+'</div></div><h3 style="text-align:center">¿Deshacer este pago?</h3><div class="msub" style="text-align:center;margin-bottom:20px"><b>$'+fmt2(p.amt)+'</b> vuelve a tu deuda de '+c.name+(p.srcName?' y regresa a '+p.srcName:'')+'.</div><button class="btn" style="background:var(--danger);box-shadow:none" onclick="undoCardPay(\''+cardId+'\',\''+payId+'\')">'+ic('back',17)+'Sí, deshacer pago</button><div class="del" style="color:var(--mut)" onclick="closeModal()">Cancelar</div>');
 }
 function undoCardPay(cardId,payId){const c=DB.cards.find(x=>x.id===cardId);if(!c)return;const p=(c.payHist||[]).find(x=>x.id===payId);if(!p)return;
-  c.debt=(c.debt||0)+p.amt;
+  c.paid=Math.max(0,(c.paid||0)-p.amt);
   if(p.src){const deb=DB.cards.find(x=>x.id===p.src);if(deb){deb.balance=(deb.balance||0)+p.amt;deb.history=(deb.history||[]).filter(h=>h.ref!==payId);}}
   c.payHist=c.payHist.filter(x=>x.id!==payId);
   save();closeModal();toast('Pago deshecho');renderAll();if(detailShown())renderCardDetail(cardId);
@@ -2370,8 +2370,8 @@ function pushReminders(){
   const occ=day=>{const arr=[];for(let k=0;k<3;k++){const dd=new Date(today.getFullYear(),today.getMonth()+k,1),dim=new Date(dd.getFullYear(),dd.getMonth()+1,0).getDate(),dt=new Date(dd.getFullYear(),dd.getMonth(),Math.min(day,dim));dt.setHours(0,0,0,0);if(dt>=today)arr.push(ymd(dt));}return arr;};
   DB.cards.forEach(c=>{
     if(c.cutDay&&nf.cortes!==false)occ(c.cutDay).forEach(d=>out.push({date:d,type:'corte',name:c.name}));
-    const debe=(c.debt||0)>0||(c.payMin||0)>0||(c.payNoInt||0)>0||cardMsiMonthly(c.id)>0;
-    if(c.payDay&&nf.pagos!==false&&debe)occ(c.payDay).forEach(d=>out.push({date:d,type:'pago',name:c.name,amount:(c.debt||c.payNoInt||c.payMin||0)}));
+    const debe=cardUsed(c)>0||(c.payMin||0)>0||(c.payNoInt||0)>0;
+    if(c.payDay&&nf.pagos!==false&&debe)occ(c.payDay).forEach(d=>out.push({date:d,type:'pago',name:c.name,amount:(c.payNoInt||cardUsed(c)||c.payMin||0)}));
   });
   DB.services.forEach(s=>{if(s.day&&nf.servicios!==false&&!svcPaid(s))occ(s.day).forEach(d=>out.push({date:d,type:'servicio',name:s.name,amount:(s.amount||0)}));});
   (DB.sched||[]).forEach(s=>{if(s.day&&nf.ingresos!==false&&!schedGotThisMonth(s))occ(s.day).forEach(d=>out.push({date:d,type:'ingreso',name:(s.name||icatById(s.category).name),amount:(s.amount||0)}));});
